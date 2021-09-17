@@ -9,6 +9,7 @@
 *.user
 *.userosscache
 *.sln.docstates
+*.filters
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
@@ -30,6 +31,9 @@ bld/
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/
+[Ll]ib/
+ImGui/
+opencv2/
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
@@ -92,6 +96,8 @@ StyleCopReport.xml
 *.pidb
 *.svclog
 *.scc
+*.sln
+*.vcxproj
 
 # Chutzpah Test files
 _Chutzpah*
@@ -348,3 +354,8 @@ MigrationBackup/
 
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
+/api/include/tiny_obj_loader.h
+/api/include/tiny_obj_loader.h
+/api/include/tiny_obj_loader.h
+/api/include/tiny_obj_loader.h
+/api/include/tiny_obj_loader.h
