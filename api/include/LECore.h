@@ -30,6 +30,7 @@ namespace LightEngine {
 		void clear_back_buffer(float clear_color[4]) const;
 		void present_frame();
 		void vertex_buffer_setup(Vertex3 *vertex_buffer, int buffer_size);
+		void update_frame_buffer(int new_width, int new_height);
 		void viewport_setup(int x, int y, int width, int height);
 		Microsoft::WRL::ComPtr<ID3D11Device> get_device_ptr();
 		Microsoft::WRL::ComPtr<ID3D11DeviceContext> get_context_ptr();

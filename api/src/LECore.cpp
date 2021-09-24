@@ -151,9 +151,8 @@ LightEngine::Core::Core(HWND window_handle_, int viewport_width, int viewport_he
 	
 	// Viewport set up
 	
-	D3D11_VIEWPORT viewport[]{{0,0,viewport_width,viewport_height,0,1}};
+	viewport_setup(0, 0, viewport_width, viewport_height);
 	
-	context_ptr_->RSSetViewports(1u,viewport);
 }
 
 void LightEngine::Core::clear_back_buffer(float r, float g, float b, float a) const {
@@ -195,32 +194,32 @@ void LightEngine::Core::vertex_buffer_setup(Vertex3 *vertex_buffer, int buffer_s
 	context_ptr_->IASetVertexBuffers(0, 1, buffer.GetAddressOf(), &stride, &offset);
 }
 
-void LightEngine::Core::viewport_setup(int x, int y, int width, int height) {
+void LightEngine::Core::update_frame_buffer(int new_width, int new_height) {
 	
 	context_ptr_->OMSetRenderTargets(0, 0, 0);
 
 	render_target_ptr_->Release();
 	
-	call_result_ = swap_chain_ptr_->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
+	call_result_ = swap_chain_ptr_->ResizeBuffers(0, new_width, new_height, DXGI_FORMAT_UNKNOWN, 0);
 
 	if (FAILED(call_result_))
 		throw LECoreException("<D3D11 ERROR> <Buffers resizing failed>", "LECore.cpp",__LINE__, call_result_);
 
-	Microsoft::WRL::ComPtr<ID3D11Resource> pBuffer;
+	Microsoft::WRL::ComPtr<ID3D11Resource> buffer;
 	
-	call_result_ = swap_chain_ptr_->GetBuffer(0, __uuidof(ID3D11Resource), &pBuffer);
+	call_result_ = swap_chain_ptr_->GetBuffer(0, __uuidof(ID3D11Resource), &buffer);
 	if (FAILED(call_result_))
 		throw LECoreException("<D3D11 ERROR> <Cannot obtain an access to the back buffer>", "LECore.cpp",__LINE__, call_result_);
 
-	call_result_ = device_ptr_->CreateRenderTargetView(pBuffer.Get(), NULL, &render_target_ptr_);
+	call_result_ = device_ptr_->CreateRenderTargetView(buffer.Get(), NULL, &render_target_ptr_);
 	if (FAILED(call_result_))
 		throw LECoreException("<D3D11 ERROR> <Render target creation failed>", "LECore.cpp",__LINE__, call_result_);
 	
 	
 	D3D11_TEXTURE2D_DESC depth_texture_desc = {};
 
-	depth_texture_desc.Width = width;
-	depth_texture_desc.Height = height;
+	depth_texture_desc.Width = new_width;
+	depth_texture_desc.Height = new_height;
 	depth_texture_desc.MipLevels = 1u;
 	depth_texture_desc.ArraySize = 1u;
 	depth_texture_desc.Format = DXGI_FORMAT_D32_FLOAT;
@@ -250,14 +249,18 @@ void LightEngine::Core::viewport_setup(int x, int y, int width, int height) {
 
 	context_ptr_->OMSetRenderTargets(1u,render_target_ptr_.GetAddressOf(),depth_view_ptr_.Get());
 
-	D3D11_VIEWPORT vp;
-	vp.Width = width;
-	vp.Height = height;
-	vp.MinDepth = 0.0f;
-	vp.MaxDepth = 1.0f;
-	vp.TopLeftX = x;
-	vp.TopLeftY = y;
-	context_ptr_->RSSetViewports(1, &vp);
+}
+
+void LightEngine::Core::viewport_setup(int x, int y, int width, int height) {
+	D3D11_VIEWPORT viewport;
+	viewport.Width = width;
+	viewport.Height = height;
+	viewport.MinDepth = 0.0f;
+	viewport.MaxDepth = 1.0f;
+	viewport.TopLeftX = x;
+	viewport.TopLeftY = y;
+	
+	context_ptr_->RSSetViewports(1, &viewport);
 }
 
 Microsoft::WRL::ComPtr<ID3D11Device> LightEngine::Core::get_device_ptr() { return device_ptr_; }

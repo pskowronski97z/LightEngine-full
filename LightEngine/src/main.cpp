@@ -1,6 +1,6 @@
-#pragma comment(lib, "imgui_dx11")
 #pragma comment(lib, "gui")
 #pragma comment(lib, "api")
+#pragma comment(lib, "imgui_dx11")
 
 #include <iostream>
 #include <WinMain.h>
@@ -9,18 +9,18 @@
 #include <LEGeometry.h>
 #include <LEMaterial.h>
 #include <LECamera.h>
-#include <ImGui/imgui.h>
-#include <ImGui/imgui_impl_dx11.h>
-#include <ImGui/imgui_impl_win32.h>
+#include <imgui.h>
+#include <imgui_impl_dx11.h>
+#include <imgui_impl_win32.h>
 #include <GUI_variables.h>
-#include <filesystem>
+#include <LE_GUI.h>
 
 //Path to a directory where all compiled HLSL shaders (from "shaders" directory) are placed
 constexpr auto COMPILED_SHADERS_DIR = L"B:\\source\\repos\\LightEngine v2\\LightEngine-full\\bin\\x64\\Debug\\compiled shaders\\";
 
 int main(int argc, const char **argv) {
 
-	AppWindow::Window window("LightEngine v1.0", 1296, 759);
+	AppWindow::Window window("LightEngine v1.0", 1600, 900);
 	window.set_style(AppWindow::Style::MAXIMIZE);
 	window.set_style(AppWindow::Style::MINIMIZE);
 	window.set_style(AppWindow::Style::SIZEABLE);
@@ -44,10 +44,14 @@ int main(int argc, const char **argv) {
 		ImGuiIO &io = ImGui::GetIO();
 		(void)io;
 
+		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;       
+		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;  
+		
 
 		ImGui::StyleColorsDark();
 		ImGui_ImplWin32_Init(window.get_handle());
 		ImGui_ImplDX11_Init(core->get_device_ptr().Get(), core->get_context_ptr().Get());
+	
 		
 		
 		std::wstring shader_directory(COMPILED_SHADERS_DIR);
@@ -57,6 +61,9 @@ int main(int argc, const char **argv) {
 		LightEngine::PixelShader phong_ps(core, shader_directory + L"PhongPS.cso");
 		LightEngine::PixelShader gouraud_ps(core, shader_directory + L"GouraudPS.cso");
 		LightEngine::PixelShader pbr_ps(core, shader_directory + L"PBRShader.cso");
+		LightEngine::VertexShader hud_vs(core, shader_directory + L"ViewportHUD_VS.cso");
+		LightEngine::PixelShader hud_ps(core, shader_directory + L"ViewportHUD_PS.cso");
+
 		std::shared_ptr<LightEngine::PixelShader> blinn_ps_ptr = std::make_shared<LightEngine::PixelShader>(blinn_ps);
 		std::shared_ptr<LightEngine::PixelShader> phong_ps_ptr = std::make_shared<LightEngine::PixelShader>(phong_ps);
 		std::shared_ptr<LightEngine::PixelShader> gouraud_ps_ptr = std::make_shared<LightEngine::PixelShader>(gouraud_ps);
@@ -73,10 +80,28 @@ int main(int argc, const char **argv) {
 		LightEngine::Sampler sampler_bilinear(core, LightEngine::Sampler::Filtering::BILINEAR);
 		LightEngine::Sampler sampler_trilinear(core, LightEngine::Sampler::Filtering::TRILINEAR);
 		LightEngine::Sampler sampler_anisotropic(core, LightEngine::Sampler::Filtering::ANISOTROPIC);
+		LightEngineUI::MaterialEditor material_editor;
+
+		
+
+		std::vector<LightEngine::Vertex3> border_vertices{
+			{{-0.99,0.99,0.0},{0.4,0.4,0.4,1.0}},
+			{{0.99,0.99,0.0},{0.4,0.4,0.4,1.0}},
+			{{0.99,-0.99,0.0},{0.4,0.4,0.4,1.0}},
+			{{-0.99,-0.99,0.0},{0.4,0.4,0.4,1.0}},
+			{{-0.99,0.99,0.0},{0.4,0.4,0.4,1.0}}};
+
+		LightEngine::Geometry<LightEngine::Vertex3> viewport_border(core,border_vertices,D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP,"border");
+
+		
 
 		direct_light.set_position(direct_light_position);
 		default_material.assign_vertex_shader(std::make_shared<LightEngine::VertexShader>(vs));
 		default_material.assign_pixel_shader(blinn_ps_ptr);
+
+		std::shared_ptr<LightEngine::DefaultMaterial> default_ptr = std::make_shared<LightEngine::DefaultMaterial>(default_material);
+
+		material_editor.load_material(default_ptr);
 
 		pbr_material.assign_vertex_shader(std::make_shared<LightEngine::VertexShader>(vs));
 		pbr_material.assign_pixel_shader(pbr_ps_ptr);
@@ -106,18 +131,20 @@ int main(int argc, const char **argv) {
 				ImGui_ImplWin32_NewFrame();
 				ImGui::NewFrame();
 				
+				ImGui::DockSpaceOverViewport(0,ImGuiDockNodeFlags_PassthruCentralNode,0);
 
 				if(window.was_resized()) {
 				
 					std::cout<<window.get_width()<<" x "<<window.get_height()<<std::endl;
-					core->viewport_setup(0,0,window.get_width(),window.get_height());
-					arcball_camera.set_scaling(window.get_width(),window.get_height());
-					fps_camera.set_scaling(window.get_width(),window.get_height());
-					arcball_camera.update();
-					fps_camera.update();
+					core->update_frame_buffer(window.get_width(),window.get_height());
+					update_viewport = true;
+
 				}
 				// GUI Scope
 				{
+					
+					
+
 					if (ImGui::BeginMainMenuBar()) {
 
 						if (ImGui::BeginMenu("File")) {
@@ -449,11 +476,40 @@ int main(int argc, const char **argv) {
 								ImGui::EndMenu();
 							}
 
+							if (ImGui::BeginMenu("Preferences")) {
+
+								ImGui::LabelText("", "Viewport");
+
+								if(ImGui::DragInt("Position X",&vp_tl_x,1.0,0,INT_MAX))
+									update_viewport = true;
+								
+								if(ImGui::DragInt("Position Y",&vp_tl_y,1.0,0,INT_MAX))
+									update_viewport = true;
+
+								if(ImGui::DragInt("Width offset",&vp_const_width_offset,1.0,-INT_MAX,INT_MAX))
+									update_viewport = true;
+
+								if(ImGui::DragInt("Height offset",&vp_const_height_offset,1.0,-INT_MAX,INT_MAX))
+									update_viewport = true;
+
+								ImGui::EndMenu();
+							}
+
 							ImGui::EndMenu();
 						}
 
 						ImGui::EndMainMenuBar();
 					}					
+
+
+					material_editor.draw();
+
+					ImGui::Begin("Material ",nullptr);
+
+					ImGui::End();
+					
+
+
 					ImGui::Render();								
 				}
 							
@@ -466,8 +522,8 @@ int main(int argc, const char **argv) {
 					cursor_y_delta = AppWindow::IO::Mouse::get_position_y() - cursor_y_buffer;
 					cursor_y_buffer = AppWindow::IO::Mouse::get_position_y();
 
-					wheel_delta = AppWindow::IO::Mouse::get_wheel_delta();
-					
+					wheel_d = AppWindow::IO::Mouse::get_wheel_delta();
+			
 					if(camera) {
 						
 						if (AppWindow::IO::Mouse::left_button_down()) {
@@ -482,8 +538,8 @@ int main(int argc, const char **argv) {
 							update_camera = true;
 						}
 
-						if (wheel_delta) {
-							arcball_camera.modify_radius(-wheel_delta * ZOOM_SENSITIVITY);
+						if (wheel_d) {
+							arcball_camera.modify_radius(-wheel_d * ZOOM_SENSITIVITY);
 							update_camera = true;
 						}
 					} else {
@@ -548,6 +604,18 @@ int main(int argc, const char **argv) {
 					update_material = false;
 				}
 
+				if(update_viewport){		
+					int vp_width = window.get_width() + vp_const_width_offset;
+					int vp_height = window.get_height() + vp_const_height_offset;
+
+					core->viewport_setup(vp_tl_x,vp_tl_y,vp_width, vp_height);
+					arcball_camera.set_scaling(vp_width, vp_height);
+					fps_camera.set_scaling(vp_width, vp_height);
+					arcball_camera.update();
+					fps_camera.update();
+					update_viewport = false;
+				}
+
 				core->clear_back_buffer(color);
 
 				//default_material.bind();
@@ -558,6 +626,13 @@ int main(int argc, const char **argv) {
 					scene[i].bind_vertex_buffer();
 					scene[i].draw(0);
 				}
+
+				hud_vs.bind();
+				hud_ps.bind();
+
+				viewport_border.bind_topology();
+				viewport_border.bind_vertex_buffer();
+				viewport_border.draw(0);
 
 				ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 				

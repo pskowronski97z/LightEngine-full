@@ -72,6 +72,16 @@ void LightEngine::Material<T>::update() {
 	}
 }
 
+template<class T>
+T LightEngine::Material<T>::get_all_parameters() const {
+	return parameters;
+}
+
+template<class T>
+void LightEngine::Material<T>::set_all_parameters(T new_parameters) {
+	parameters = new_parameters;
+}
+
 template <class T>
 std::string LightEngine::Material<T>::get_name() const {return name_;}
 

@@ -96,7 +96,6 @@ LRESULT CALLBACK AppWindow::Window::wnd_proc(HWND wnd_handle, UINT msg, WPARAM w
 	if (ImGui_ImplWin32_WndProcHandler(wnd_handle, msg, w_param, l_param))
         return true;
 
-	IO::Mouse::wheel_delta_ = 0;
 	IO::Keyboard::typed_char_ = 0;
 
 	switch (msg) {

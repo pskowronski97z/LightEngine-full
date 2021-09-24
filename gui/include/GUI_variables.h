@@ -49,18 +49,24 @@ int cursor_x_buffer = 0;
 int cursor_x_delta = 0;
 int cursor_y_buffer = 0;
 int cursor_y_delta = 0;
-int wheel_delta = 0;
+int wheel_d = 0;
 int texture_filtering = 3;
+int vp_tl_x = 269;
+int vp_tl_y = 18;
+int vp_const_width_offset = -519;
+int vp_const_height_offset = -277;
 
 bool update_camera = false;
 bool update_material = false;
 bool update_light = false;
+bool update_viewport = false;
 bool toogle_diffuse = false;
 bool toogle_ambient = false;
 bool is_diffuse_map_used = false;
 bool is_normal_map_used = false;
 bool flip_x = false;
 bool flip_y = false;
+
 
 std::string load_dmap_btn_lbl = "Load diffuse map";
 std::string load_nmap_btn_lbl = "Load normal map";

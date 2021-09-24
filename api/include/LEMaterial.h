@@ -19,6 +19,8 @@ namespace LightEngine {
 		void assign_vertex_shader(std::shared_ptr<VertexShader> vs_ptr);
 		void assign_pixel_shader(std::shared_ptr<PixelShader> ps_ptr);
 		void update();	
+		T get_all_parameters() const;
+		void set_all_parameters(T new_parameters);
 		std::string get_name() const;	
 	};
 
