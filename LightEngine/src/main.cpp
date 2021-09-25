@@ -51,8 +51,6 @@ int main(int argc, const char **argv) {
 		ImGui::StyleColorsDark();
 		ImGui_ImplWin32_Init(window.get_handle());
 		ImGui_ImplDX11_Init(core->get_device_ptr().Get(), core->get_context_ptr().Get());
-	
-		
 		
 		std::wstring shader_directory(COMPILED_SHADERS_DIR);
 
@@ -339,6 +337,9 @@ int main(int argc, const char **argv) {
 								}
 
 								ImGui::Separator();
+
+								
+
 								ImGui::LabelText("", "Normal mapping");
 									if (default_material.is_normal_map_assigned()) {
 										if (ImGui::Checkbox("Enable", &is_normal_map_used)) {
@@ -599,8 +600,8 @@ int main(int argc, const char **argv) {
 				}
 
 				if(update_material){
-					//default_material.update();
-					pbr_material.update();
+					default_material.update();
+					//pbr_material.update();
 					update_material = false;
 				}
 
@@ -618,8 +619,8 @@ int main(int argc, const char **argv) {
 
 				core->clear_back_buffer(color);
 
-				//default_material.bind();
-				pbr_material.bind();
+				default_material.bind();
+				//pbr_material.bind();
 
 				for (int i = 0; i < scene.size(); i++) {
 					scene[i].bind_topology();

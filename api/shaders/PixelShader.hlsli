@@ -26,11 +26,13 @@ cbuffer CAMERA : register(b0) {
 cbuffer POINT_LIGHT : register(b1) {
     float4 coordinates_pt;
     float4 color_pt;
+    float4 additional_pt;
 };
 
 cbuffer DIRECT_LIGHT : register(b2) {
     float4 coordinates_dir;
     float4 color_dir;
+    float4 additional_dir;
 };
 
 cbuffer MATERIAL : register(b3) {

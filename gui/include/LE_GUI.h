@@ -22,6 +22,13 @@ namespace LightEngineUI {
 		LightEngine::DefaultParameters default_parameters_;
 		LightEngine::PBRParameters pbr_parameters_;
 		std::string material_name_;
+		bool flip_x_ = false;
+		bool flip_y_ = false;
+		bool update_default_material_ = false;
+		bool is_diffuse_map_used_ = false;
+		bool is_normal_map_used_ = false;
+		ImVec2 button_size_;
+
 	public:
 		MaterialEditor();
 		void draw() override;

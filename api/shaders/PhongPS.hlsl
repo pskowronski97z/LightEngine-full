@@ -53,10 +53,11 @@ float4 main(PS_INPUT input) : SV_TARGET {
     else
         input.normal = normalize(input.normal);
     
-    lighting += calculate_phong_dir(specular, used_diffuse, ambient * used_diffuse, mul(coordinates_dir, camera_matrix_), color_dir, glossiness, input);
-    lighting += calculate_phong_pt(specular, used_diffuse, ambient * used_diffuse, mul(coordinates_pt, camera_matrix_), color_pt, glossiness, input);
+    lighting += calculate_phong_dir(specular * specular_level, used_diffuse, ambient, mul(coordinates_dir, camera_matrix_), color_dir * additional_dir[0], glossiness, input);
+    lighting += calculate_phong_pt(specular * specular_level, used_diffuse, ambient, mul(coordinates_pt, camera_matrix_), color_pt * additional_pt[0], glossiness, input);
     
-    lighting = saturate(lighting);
+    lighting = lighting / (lighting + 1.0f); // Conversion to HDR
+    lighting = pow(lighting, 0.8f); // Gamma correction
     
     return float4(lighting, 1.0);
 
