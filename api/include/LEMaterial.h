@@ -12,6 +12,7 @@ namespace LightEngine {
 		T parameters;
 		std::shared_ptr<VertexShader> vs_ptr_ = nullptr;
 		std::shared_ptr<PixelShader> ps_ptr_ = nullptr;
+		std::vector<std::string> maps_names_;
 		Material(std::shared_ptr<Core> core_ptr, std::string name);	
 		void bind_shaders() const;
 	public:
@@ -20,8 +21,8 @@ namespace LightEngine {
 		void assign_pixel_shader(std::shared_ptr<PixelShader> ps_ptr);
 		void update();	
 		T get_all_parameters() const;
-		void set_all_parameters(T new_parameters);
 		std::string get_name() const;	
+		virtual std::vector<std::string> get_maps_names() const = 0;
 	};
 
 	class __declspec(dllexport) DefaultMaterial : public Material<DefaultParameters> {
@@ -31,8 +32,8 @@ namespace LightEngine {
 	public:
 		DefaultMaterial(std::shared_ptr<Core> core_ptr, std::string name);
 		void bind() const override;
-		void assign_diffuse_map(std::shared_ptr<Texture> diffuse_map_ptr);
-		void assign_normal_map(std::shared_ptr<Texture> normal_map_ptr);
+		void set_diffuse_map(std::shared_ptr<Texture> diffuse_map_ptr);
+		void set_normal_map(std::shared_ptr<Texture> normal_map_ptr);
 		void set_quadratic_att(float value);
 		void set_linear_att(float value);
 		void set_constant_att(float value);
@@ -41,14 +42,9 @@ namespace LightEngine {
 		void set_specular_color(float specular[3]);
 		void set_diffuse_color(float diffuse[3]);
 		void set_ambient_color(float ambient[3]);
-		void select_diffuse_map_usage();
-		void select_normal_map_usage();
-		void unselect_diffuse_map_usage();
-		void unselect_normal_map_usage();
-		bool is_diffuse_map_assigned() const;
-		bool is_normal_map_assigned() const;
 		void flip_tangent();
 		void flip_bitangent();
+		std::vector<std::string> get_maps_names() const override;
 	};
 
 	class __declspec(dllexport) PBRMaterial : public Material<PBRParameters> {
@@ -57,27 +53,19 @@ namespace LightEngine {
 		std::shared_ptr<Texture> roughness_map_ptr_ = nullptr;
 		std::shared_ptr<Texture> metalness_map_ptr_ = nullptr;
 		std::shared_ptr<Texture> normal_map_ptr_ = nullptr;
-		std::shared_ptr<Texture> ao_map_ptr_ = nullptr;
+		std::shared_ptr<Texture> ao_map_ptr_ = nullptr;	
+		
 	public:
 		PBRMaterial(std::shared_ptr<Core> core_ptr, std::string name);
 		void bind() const override;
 		void set_albedo(float albedo[3]);
 		void set_roughness(float roughness);
-		void set_metallic(float metallic);
-		void assign_albedo_map(std::shared_ptr<Texture> albedo_map_ptr);
-		void assign_roughness_map(std::shared_ptr<Texture> roughness_map_ptr);
-		void assign_metalness_map(std::shared_ptr<Texture> metalness_map_ptr);
-		void assign_normal_map(std::shared_ptr<Texture> normal_map_ptr);
-		void assign_ao_map(std::shared_ptr<Texture> ao_map_ptr);
-		/// <summary>
-		/// Enables usage of particular maps (if loaded)
-		/// </summary>
-		/// <param name="flags"> - An array of 5 flags significating usage of:</param>
-		/// <param name="flags[0]"> - Albedo map </param>	
-		/// <param name="flags[1]"> - Roughness map </param>	
-		/// <param name="flags[2]"> - Metalness map </param>	
-		/// <param name="flags[3]"> - Normal map </param>	
-		/// <param name="flags[4]"> - Ambient occlusion map </param>	
-		void set_maps_usage(bool flags[5]);
+		void set_metalness(float metalness);
+		void set_albedo_map(std::shared_ptr<Texture> albedo_map_ptr);
+		void set_roughness_map(std::shared_ptr<Texture> roughness_map_ptr);
+		void set_metalness_map(std::shared_ptr<Texture> metalness_map_ptr);
+		void set_normal_map(std::shared_ptr<Texture> normal_map_ptr);
+		void set_ao_map(std::shared_ptr<Texture> ao_map_ptr);		
+		std::vector<std::string> get_maps_names() const override;
 	};
 }

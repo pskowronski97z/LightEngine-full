@@ -51,7 +51,10 @@ int main(int argc, const char **argv) {
 		ImGui::StyleColorsDark();
 		ImGui_ImplWin32_Init(window.get_handle());
 		ImGui_ImplDX11_Init(core->get_device_ptr().Get(), core->get_context_ptr().Get());
-		
+		ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 9.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 9.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_GrabMinSize, 18.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize,1.5f);
 		std::wstring shader_directory(COMPILED_SHADERS_DIR);
 
 		LightEngine::VertexShader vs(core, shader_directory + L"CameraVS.cso");
@@ -73,7 +76,7 @@ int main(int argc, const char **argv) {
 		LightEngine::LightSource direct_light(core, 0.0);
 		LightEngine::DEBUG_VSTransform transform(core);
 		LightEngine::DefaultMaterial default_material(core, "Default00");
-		LightEngine::PBRMaterial pbr_material(core, "PBR_MR_00");
+		LightEngine::PBRMaterial pbr_material(core, "PBR_Metallic_Roughness");
 		LightEngine::Sampler sampler_nearest(core, LightEngine::Sampler::Filtering::NEAREST);
 		LightEngine::Sampler sampler_bilinear(core, LightEngine::Sampler::Filtering::BILINEAR);
 		LightEngine::Sampler sampler_trilinear(core, LightEngine::Sampler::Filtering::TRILINEAR);
@@ -98,6 +101,7 @@ int main(int argc, const char **argv) {
 		default_material.assign_pixel_shader(blinn_ps_ptr);
 
 		std::shared_ptr<LightEngine::DefaultMaterial> default_ptr = std::make_shared<LightEngine::DefaultMaterial>(default_material);
+		std::shared_ptr<LightEngine::PBRMaterial> pbr_ptr = std::make_shared<LightEngine::PBRMaterial>(pbr_material);
 
 		material_editor.load_material(default_ptr);
 
@@ -130,7 +134,7 @@ int main(int argc, const char **argv) {
 				ImGui::NewFrame();
 				
 				ImGui::DockSpaceOverViewport(0,ImGuiDockNodeFlags_PassthruCentralNode,0);
-
+				
 				if(window.was_resized()) {
 				
 					std::cout<<window.get_width()<<" x "<<window.get_height()<<std::endl;
@@ -141,8 +145,6 @@ int main(int argc, const char **argv) {
 				// GUI Scope
 				{
 					
-					
-
 					if (ImGui::BeginMainMenuBar()) {
 
 						if (ImGui::BeginMenu("File")) {
@@ -157,304 +159,7 @@ int main(int argc, const char **argv) {
 								}
 							}
 							ImGui::EndMenu();					
-						}
-
-						if (ImGui::BeginMenu("Camera")) {
-
-							if (ImGui::RadioButton("FPS", &camera, 0)) {
-								std::cout << "FPS camera selected" << std::endl;
-								fps_camera.set_active(0);
-								update_camera = true;
-							}							
-
-							ImGui::SameLine();
-
-							if (ImGui::RadioButton("Arcball", &camera, 1)) {
-								std::cout << "Arcball camera selected" << std::endl;
-								arcball_camera.set_active(0);
-								update_camera = true;
-							}
-
-							if (camera) {
-								if (ImGui::SliderInt("FOV", &arcball_fov, 0, 180)) {
-									arcball_camera.set_fov((float)arcball_fov);
-									update_camera = true;
-								}
-							}
-							else {
-								if (ImGui::SliderInt("FOV", &world_fov, 0, 180)) {
-									fps_camera.set_fov((float)world_fov);
-									update_camera = true;
-								}
-							}
-
-
-							if (ImGui::Button("Reset camera", ImVec2(150, 30))) {
-
-								if (camera)
-									arcball_camera.reset();								
-								else
-									fps_camera.reset();
-								update_camera = true;
-							}
-
-
-							ImGui::EndMenu();
-						}
-					
-						if (ImGui::BeginMenu("Light Sources")) {
-
-							if (ImGui::BeginMenu("Point light")) {
-								if (ImGui::CollapsingHeader("Color")) {
-									if (ImGui::ColorPicker3("Color", point_light_color)) {
-										point_light.set_color(point_light_color);
-										update_light = true;
-									}
-								}
-
-								if (ImGui::DragFloat3("Position", point_light_position, 0.1, -D3D11_FLOAT32_MAX, D3D11_FLOAT32_MAX, "%.1f")) {
-									point_light.set_position(point_light_position);
-									update_light = true;
-								}
-
-								if (ImGui::DragFloat("Intensity", &point_light_intensity, 10.0f, 1.0f, 1000.0f, "%.2f")) {
-									point_light.set_intensity(point_light_intensity);
-									update_light = true;
-								}
-
-								ImGui::EndMenu();
-							}
-
-							if (ImGui::BeginMenu("Direct light")) {
-								if (ImGui::ColorPicker3("Color", direct_light_color)) {
-									direct_light.set_color(direct_light_color);
-									update_light = true;
-								}
-
-								if (ImGui::DragFloat("Intensity", &direct_light_intensity, 10.0f, 1.0f, 1000.0f, "%.2f")) {
-									direct_light.set_intensity(direct_light_intensity);
-									update_light = true;
-								}
-								
-								ImGui::EndMenu();
-							}
-
-							ImGui::EndMenu();
-						}
-
-						if (ImGui::BeginMenu("Material Editor")) {
-							if (ImGui::BeginMenu(default_material.get_name().c_str())) {
-
-								ImGui::LabelText("", "Shading mode");
-
-								if (ImGui::RadioButton("Blinn", &shading, 0)) {
-									std::cout << "Blinn shading selected" << std::endl;
-									default_material.assign_pixel_shader(blinn_ps_ptr);
-									update_material = true;
-									
-								}
-
-								ImGui::SameLine();
-
-								if (ImGui::RadioButton("Phong", &shading, 1)) {
-									std::cout << "Phong shading selected" << std::endl;
-									default_material.assign_pixel_shader(phong_ps_ptr);
-									update_material = true;
-									
-								}
-
-								ImGui::SameLine();
-
-								if (ImGui::RadioButton("Gouraud", &shading, 2)) {
-									std::cout << "Gouraud shading selected" << std::endl;
-									default_material.assign_pixel_shader(gouraud_ps_ptr);
-									update_material = true;
-									
-								}
-
-								ImGui::Separator();
-
-								if (ImGui::BeginMenu("Specular color")) {
-									if (ImGui::ColorPicker3("Specular", specular_color)) {
-										default_material.set_specular_color(specular_color);
-										update_material = true;
-									}
-									ImGui::EndMenu();
-								}
-
-								if (ImGui::BeginMenu("Diffuse color")) {
-									if (ImGui::ColorPicker3("Diffuse", diffuse_color)) {
-										default_material.set_diffuse_color(diffuse_color);
-										update_material = true;
-									}
-
-									ImGui::Separator();
-
-									if (default_material.is_diffuse_map_assigned()) {
-										if (ImGui::Checkbox("Use map", &is_diffuse_map_used)) {
-											if(is_diffuse_map_used)
-												default_material.select_diffuse_map_usage();
-											else
-												default_material.unselect_diffuse_map_usage();
-											update_material = true;
-										}
-									}
-
-									if(ImGui::Button(load_dmap_btn_lbl.c_str(), ImVec2(270,30))){
-										std::string path = AppWindow::open_file_dialog(image_file_filter, image_file_filter_size);
-										if (path != "") {
-											LightEngine::Texture temp(core, path);
-											default_material.assign_diffuse_map(std::make_shared<LightEngine::Texture>(temp));
-											default_material.select_diffuse_map_usage();
-											load_dmap_btn_lbl = temp.get_name();
-											is_diffuse_map_used = true;
-											update_material = true;
-										}
-									}								
-									ImGui::EndMenu();								
-								}
-
-								if (ImGui::BeginMenu("Ambient color")) {
-									if (ImGui::ColorPicker3("Ambient", ambient_color)) {
-										default_material.set_ambient_color(ambient_color);
-										update_material = true;
-									}
-									ImGui::EndMenu();
-								}
-
-								ImGui::Separator();							
-
-								if (ImGui::DragInt("Glossiness", &glossiness, 1, 1, 500, "%3d")) {
-									default_material.set_glossiness(glossiness);
-									update_material = true;
-								}
-
-								if (ImGui::DragFloat3("Attenuation", attenuation, 0.001, 0, D3D11_FLOAT32_MAX, "%.4f")) {
-									default_material.set_quadratic_att(attenuation[0]);
-									default_material.set_linear_att(attenuation[1]);
-									default_material.set_constant_att(attenuation[2]);
-									update_material = true;
-								}
-
-								ImGui::Separator();
-
-								
-
-								ImGui::LabelText("", "Normal mapping");
-									if (default_material.is_normal_map_assigned()) {
-										if (ImGui::Checkbox("Enable", &is_normal_map_used)) {
-											if(is_normal_map_used)
-												default_material.select_normal_map_usage();
-											else
-												default_material.unselect_normal_map_usage();
-											update_material = true;
-										}
-									}
-
-									if(ImGui::Button(load_nmap_btn_lbl.c_str(), ImVec2(300,30))){
-										std::string path = AppWindow::open_file_dialog(image_file_filter, image_file_filter_size);
-										if (path != "") {
-											LightEngine::Texture temp(core, path);
-											default_material.assign_normal_map(std::make_shared<LightEngine::Texture>(temp));
-											default_material.select_normal_map_usage();
-											load_nmap_btn_lbl = temp.get_name();
-											is_normal_map_used = true;
-											update_material = true;
-										}
-									}
-
-									if (default_material.is_normal_map_assigned()) {
-										if (ImGui::Checkbox("Flip X", &flip_x)) {
-											default_material.flip_tangent();
-											update_material = true;
-										}
-										ImGui::SameLine();
-										if (ImGui::Checkbox("Flip Y", &flip_y)) {
-											default_material.flip_bitangent();
-											update_material = true;
-										}
-									}
-
-								ImGui::EndMenu();
-							}
-							
-							if (ImGui::BeginMenu(pbr_material.get_name().c_str())){
-							
-								if (ImGui::BeginMenu("Albedo")) {
-									if (ImGui::ColorPicker3("Albedo", albedo)) {
-										pbr_material.set_albedo(albedo);
-										update_material = true;
-									}
-
-									if (ImGui::Button(pbr_albedo_btn.c_str(), ImVec2(270, 30))) {
-										std::string path = AppWindow::open_file_dialog(image_file_filter, image_file_filter_size);
-										if (path != "") {
-											LightEngine::Texture temp(core, path);
-											pbr_material.assign_albedo_map(std::make_shared<LightEngine::Texture>(temp));
-											pbr_albedo_btn = temp.get_name();
-											update_material = true;
-										}
-									}
-
-									ImGui::EndMenu();
-								}
-
-								
-
-								if (ImGui::DragFloat("Roughness", &roughness, 0.005f, 0.0f, 1.0f, "%.2f")) {
-									pbr_material.set_roughness(roughness);
-									update_material = true;
-								}
-
-								if (ImGui::Button(pbr_roughness_btn.c_str(), ImVec2(270, 30))) {
-									std::string path = AppWindow::open_file_dialog(image_file_filter, image_file_filter_size);
-									if (path != "") {
-										LightEngine::Texture temp(core, path);
-										pbr_material.assign_roughness_map(std::make_shared<LightEngine::Texture>(temp));
-										pbr_roughness_btn = temp.get_name();
-										update_material = true;
-									}
-								}
-								
-								if (ImGui::DragFloat("Metallic", &metallic, 0.005f, 0.0f, 1.0f, "%.2f")) {
-									pbr_material.set_metallic(metallic);
-									update_material = true;
-								}
-
-								if (ImGui::Button(pbr_metalness_btn.c_str(), ImVec2(270, 30))) {
-									std::string path = AppWindow::open_file_dialog(image_file_filter, image_file_filter_size);
-									if (path != "") {
-										LightEngine::Texture temp(core, path);
-										pbr_material.assign_metalness_map(std::make_shared<LightEngine::Texture>(temp));
-										pbr_metalness_btn = temp.get_name();
-										update_material = true;
-									}
-								}
-
-								if (ImGui::Button(pbr_normal_btn.c_str(), ImVec2(270, 30))) {
-									std::string path = AppWindow::open_file_dialog(image_file_filter, image_file_filter_size);
-									if (path != "") {
-										LightEngine::Texture temp(core, path);
-										pbr_material.assign_normal_map(std::make_shared<LightEngine::Texture>(temp));
-										pbr_normal_btn = temp.get_name();
-										update_material = true;
-									}
-								}
-
-								if (ImGui::Button(pbr_ao_btn.c_str(), ImVec2(270, 30))) {
-									std::string path = AppWindow::open_file_dialog(image_file_filter, image_file_filter_size);
-									if (path != "") {
-										LightEngine::Texture temp(core, path);
-										pbr_material.assign_ao_map(std::make_shared<LightEngine::Texture>(temp));
-										pbr_ao_btn = temp.get_name();
-										update_material = true;
-									}
-								}
-
-								ImGui::EndMenu();
-							}
-							ImGui::EndMenu();
-						}										
+						}									
 						
 						if (ImGui::BeginMenu("Settings")){
 						
@@ -502,10 +207,93 @@ int main(int argc, const char **argv) {
 						ImGui::EndMainMenuBar();
 					}					
 
+					ImGui::Begin("Camera");
+
+					if (ImGui::RadioButton("FPS", &camera, 0)) {
+						std::cout << "FPS camera selected" << std::endl;
+						fps_camera.set_active(0);
+						update_camera = true;
+					}
+
+					ImGui::SameLine();
+
+					if (ImGui::RadioButton("Arcball", &camera, 1)) {
+						std::cout << "Arcball camera selected" << std::endl;
+						arcball_camera.set_active(0);
+						update_camera = true;
+					}
+
+					if (camera) {
+						if (ImGui::SliderInt("FOV", &arcball_fov, 0, 180)) {
+							arcball_camera.set_fov((float)arcball_fov);
+							update_camera = true;
+						}
+					}
+					else {
+						if (ImGui::SliderInt("FOV", &world_fov, 0, 180)) {
+							fps_camera.set_fov((float)world_fov);
+							update_camera = true;
+						}
+					}
+
+
+					if (ImGui::Button("Reset camera", ImVec2(150, 30))) {
+
+						if (camera)
+							arcball_camera.reset();
+						else
+							fps_camera.reset();
+						update_camera = true;
+					}
+
+
+					ImGui::End();
+
+
+
+					ImGui::Begin("Light Sources");
+
+					if (ImGui::BeginMenu("Point light")) {
+						if (ImGui::CollapsingHeader("Color")) {
+							if (ImGui::ColorPicker3("Color", point_light_color)) {
+								point_light.set_color(point_light_color);
+								update_light = true;
+							}
+						}
+
+						if (ImGui::DragFloat3("Position", point_light_position, 0.1, -D3D11_FLOAT32_MAX, D3D11_FLOAT32_MAX, "%.1f")) {
+							point_light.set_position(point_light_position);
+							update_light = true;
+						}
+
+						if (ImGui::DragFloat("Intensity", &point_light_intensity, 10.0f, 1.0f, 1000.0f, "%.2f")) {
+							point_light.set_intensity(point_light_intensity);
+							update_light = true;
+						}
+
+						ImGui::EndMenu();
+					}
+
+					if (ImGui::BeginMenu("Direct light")) {
+						if (ImGui::ColorPicker3("Color", direct_light_color)) {
+							direct_light.set_color(direct_light_color);
+							update_light = true;
+						}
+
+						if (ImGui::DragFloat("Intensity", &direct_light_intensity, 10.0f, 1.0f, 1000.0f, "%.2f")) {
+							direct_light.set_intensity(direct_light_intensity);
+							update_light = true;
+						}
+
+						ImGui::EndMenu();
+					}
+
+					ImGui::End();
+						
 
 					material_editor.draw();
 
-					ImGui::Begin("Material ",nullptr);
+					ImGui::Begin("Material Browser ",nullptr);
 
 					ImGui::End();
 					

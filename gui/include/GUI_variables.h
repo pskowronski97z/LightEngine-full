@@ -10,10 +10,10 @@ constexpr auto image_file_filter_size = 11;
 
 COMDLG_FILTERSPEC model_file_filter[model_file_filter_size] = { {L"Wavefront OBJ", L"*.obj"} };
 COMDLG_FILTERSPEC image_file_filter[image_file_filter_size] = {
-		{L"Windows bitmaps", L"*.bmp; *.dib"},
+		{L"Portable Network Graphics", L"*.png"},
 		{L"JPEG files", L"*.jpeg; *.jpg; *.jpe"},
 		{L"JPEG 2000 files", L"*.jp2"},
-		{L"Portable Network Graphics", L"*.png"},
+		{L"Windows bitmaps", L"*.bmp; *.dib"},
 		{L"WebP", L"*.webp"},
 		{L"Portable image format", L"*.pbm; *.pgm; *.ppm; *.pxm; *.pnm"},
 		{L"PFM files", L"*.pfm"},
@@ -53,7 +53,7 @@ int wheel_d = 0;
 int texture_filtering = 3;
 int vp_tl_x = 269;
 int vp_tl_y = 18;
-int vp_const_width_offset = -519;
+int vp_const_width_offset = -562;
 int vp_const_height_offset = -277;
 
 bool update_camera = false;

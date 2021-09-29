@@ -3,31 +3,8 @@
 #include <iostream>
 
 template <class T>
-LightEngine::Material<T>::Material(std::shared_ptr<Core> core_ptr, std::string name) : ConstantBuffer(core_ptr), name_(name) {
-	/*
-	parameters.quadratic_att_ = 0.3;
-	parameters.linear_att_ = 0.3;
-	parameters.constant_att_ = 1.0;
-	parameters.specular_level_ = 1.0;
-	parameters.glossiness_ = 400;
-	parameters.use_diffuse_map_ = FALSE;
-	parameters.use_normal_map_ = FALSE;
-	parameters.flip_tb_vectors_ = 0;
-	parameters.specular[0] = 1.0;
-	parameters.specular[1] = 1.0;
-	parameters.specular[2] = 1.0;
-	parameters.specular[3] = 0.0;
+LightEngine::Material<T>::Material(std::shared_ptr<Core> core_ptr, std::string name) : ConstantBuffer(core_ptr), name_(name), maps_names_(std::vector<std::string>(0)) {
 
-	parameters.diffuse[0] = 1.0;
-	parameters.diffuse[1] = 1.0;
-	parameters.diffuse[2] = 1.0;
-	parameters.diffuse[3] = 0.0;
-
-	parameters.ambient[0] = 0.0;
-	parameters.ambient[1] = 0.0;
-	parameters.ambient[2] = 0.0;
-	parameters.ambient[3] = 0.0;
-	*/
 	try{
 		create_constant_buffer<T>(std::make_shared<T>(parameters));
 	}
@@ -35,8 +12,7 @@ LightEngine::Material<T>::Material(std::shared_ptr<Core> core_ptr, std::string n
 		std::cout<<e.what();
 		std::wcout<<e.get_message();
 		throw LECoreException("	|-> <ERROR> <Material creation failed> ", "LEMaterial.cpp", __LINE__ - 5, call_result_);
-	}
-	
+	}	
 }
 
 template <class T>
@@ -50,8 +26,6 @@ void LightEngine::Material<T>::bind_shaders() const {
 
 	vs_ptr_->bind();
 	ps_ptr_->bind();	
-
-
 }
 
 template <class T>
@@ -77,17 +51,14 @@ T LightEngine::Material<T>::get_all_parameters() const {
 	return parameters;
 }
 
-template<class T>
-void LightEngine::Material<T>::set_all_parameters(T new_parameters) {
-	parameters = new_parameters;
-}
-
 template <class T>
 std::string LightEngine::Material<T>::get_name() const {return name_;}
 
 
 
-LightEngine::DefaultMaterial::DefaultMaterial(std::shared_ptr<Core> core_ptr, std::string name) : Material(core_ptr, name) {}
+LightEngine::DefaultMaterial::DefaultMaterial(std::shared_ptr<Core> core_ptr, std::string name) : Material(core_ptr, name) {
+	maps_names_ = std::vector<std::string>(2,"No map");
+}
 
 void LightEngine::DefaultMaterial::bind() const {
 	
@@ -103,9 +74,32 @@ void LightEngine::DefaultMaterial::bind() const {
 	bind_vs_buffer(3);
 }
 
-void LightEngine::DefaultMaterial::assign_diffuse_map(std::shared_ptr<Texture> diffuse_map_ptr) { diffuse_map_ptr_ = diffuse_map_ptr; }
+void LightEngine::DefaultMaterial::set_diffuse_map(std::shared_ptr<Texture> diffuse_map_ptr) { 
+	diffuse_map_ptr_ = diffuse_map_ptr; 
 
-void LightEngine::DefaultMaterial::assign_normal_map(std::shared_ptr<Texture> normal_map_ptr) { normal_map_ptr_ = normal_map_ptr; }
+	if(diffuse_map_ptr_ != nullptr) {
+		maps_names_.at(0) = diffuse_map_ptr_->get_name();
+		parameters.use_diffuse_map_ = TRUE;
+	}
+	else {
+		maps_names_.at(0) = "No map";
+		parameters.use_diffuse_map_ = FALSE;
+	}
+
+}
+
+void LightEngine::DefaultMaterial::set_normal_map(std::shared_ptr<Texture> normal_map_ptr) { 
+	normal_map_ptr_ = normal_map_ptr; 
+
+	if(normal_map_ptr_ != nullptr) {
+		maps_names_.at(1) = normal_map_ptr_->get_name();
+		parameters.use_normal_map_ = TRUE;
+	}
+	else {
+		maps_names_.at(1) = "No map";
+		parameters.use_normal_map_ = FALSE;
+	}
+}
 
 void LightEngine::DefaultMaterial::set_quadratic_att(float value) {
 	parameters.quadratic_att_ = value;
@@ -145,39 +139,19 @@ void LightEngine::DefaultMaterial::set_ambient_color(float ambient[3]) {
 	parameters.ambient[2] = ambient[2];
 }
 
-void LightEngine::DefaultMaterial::select_diffuse_map_usage() {
-	if(diffuse_map_ptr_ != nullptr)
-		parameters.use_diffuse_map_ = TRUE;
-}
-
-void LightEngine::DefaultMaterial::select_normal_map_usage() {
-	if(normal_map_ptr_ != nullptr)
-		parameters.use_normal_map_ = TRUE;
-}
-
-void LightEngine::DefaultMaterial::unselect_diffuse_map_usage() {parameters.use_diffuse_map_ = FALSE;}
-
-void LightEngine::DefaultMaterial::unselect_normal_map_usage() {parameters.use_normal_map_ = FALSE;}
-
-bool LightEngine::DefaultMaterial::is_diffuse_map_assigned() const {
-	if (diffuse_map_ptr_ != nullptr)
-		return true;
-	return false;
-}
-
-bool LightEngine::DefaultMaterial::is_normal_map_assigned() const {
-	if (normal_map_ptr_ != nullptr)
-		return true;
-	return false;
-}
-
 void LightEngine::DefaultMaterial::flip_tangent() { parameters.flip_tb_vectors_ = (0xFF00 & parameters.flip_tb_vectors_) | ((~parameters.flip_tb_vectors_& 0xFF) & 0x2);}
 
 void LightEngine::DefaultMaterial::flip_bitangent() { parameters.flip_tb_vectors_ = (0x00FF & parameters.flip_tb_vectors_) | ((~parameters.flip_tb_vectors_& 0xFF00) & (0x2<<8));}
 
+std::vector<std::string> LightEngine::DefaultMaterial::get_maps_names() const {
+	return maps_names_;
+}
 
 
-LightEngine::PBRMaterial::PBRMaterial(std::shared_ptr<Core> core_ptr, std::string name) : Material(core_ptr, name) {}
+
+LightEngine::PBRMaterial::PBRMaterial(std::shared_ptr<Core> core_ptr, std::string name) : Material(core_ptr, name) {
+	maps_names_ = std::vector<std::string>(5,"No map");
+}
 
 void LightEngine::PBRMaterial::bind() const {
 	bind_shaders();
@@ -208,25 +182,77 @@ void LightEngine::PBRMaterial::set_albedo(float albedo[3]) {
 
 void LightEngine::PBRMaterial::set_roughness(float roughness) { parameters.roughness_ = roughness; }
 
-void LightEngine::PBRMaterial::set_metallic(float metallic) { parameters.metallic_ = metallic; }
+void LightEngine::PBRMaterial::set_metalness(float metalness) { parameters.metalness_ = metalness; }
 
-void LightEngine::PBRMaterial::assign_albedo_map(std::shared_ptr<Texture> albedo_map_ptr) { albedo_map_ptr_ = albedo_map_ptr; parameters.use_albedo_map_ = TRUE; }
+void LightEngine::PBRMaterial::set_albedo_map(std::shared_ptr<Texture> albedo_map_ptr) { 
+	albedo_map_ptr_ = albedo_map_ptr;
 
-void LightEngine::PBRMaterial::assign_roughness_map(std::shared_ptr<Texture> roughness_map_ptr) { roughness_map_ptr_ = roughness_map_ptr; parameters.use_roughness_map_ = TRUE; }
-
-void LightEngine::PBRMaterial::assign_metalness_map(std::shared_ptr<Texture> metalness_map_ptr) { metalness_map_ptr_ = metalness_map_ptr; parameters.use_metalness_map_ = TRUE; }
-
-void LightEngine::PBRMaterial::assign_normal_map(std::shared_ptr<Texture> normal_map_ptr) { normal_map_ptr_ = normal_map_ptr; parameters.use_normal_map_ = TRUE; }
-
-void LightEngine::PBRMaterial::assign_ao_map(std::shared_ptr<Texture> ao_map_ptr) { ao_map_ptr_ = ao_map_ptr; parameters.use_ao_map_ = TRUE; }
-
-void LightEngine::PBRMaterial::set_maps_usage(bool flags[5]) {
-	parameters.use_albedo_map_ = albedo_map_ptr_ && flags[0];
-	parameters.use_roughness_map_ = roughness_map_ptr_ && flags[1];
-	parameters.use_metalness_map_ = metalness_map_ptr_ && flags[2];
-	parameters.use_normal_map_ = normal_map_ptr_ && flags[3];
-	parameters.use_ao_map_ = ao_map_ptr_ && flags[4];
+	if(albedo_map_ptr_ != nullptr) {
+		maps_names_.at(0) = albedo_map_ptr_->get_name();
+		parameters.use_albedo_map_ = TRUE;
+	}	
+	else {
+		maps_names_.at(0) = "No map";
+		parameters.use_albedo_map_ = FALSE;
+	}		
 }
+
+void LightEngine::PBRMaterial::set_roughness_map(std::shared_ptr<Texture> roughness_map_ptr) {
+	roughness_map_ptr_ = roughness_map_ptr;
+
+	if(roughness_map_ptr_ != nullptr) {
+		maps_names_.at(1) = roughness_map_ptr_->get_name();
+		parameters.use_roughness_map_ = TRUE;
+	}	
+	else {
+		maps_names_.at(1) = "No map";
+		parameters.use_roughness_map_ = FALSE;
+	}	
+}
+
+void LightEngine::PBRMaterial::set_metalness_map(std::shared_ptr<Texture> metalness_map_ptr) { 
+	metalness_map_ptr_ = metalness_map_ptr; 
+
+	if(metalness_map_ptr_ != nullptr) {
+		maps_names_.at(2) = metalness_map_ptr_->get_name();
+		parameters.use_metalness_map_ = TRUE;
+	}	
+	else {
+		maps_names_.at(2) = "No map";
+		parameters.use_metalness_map_ = FALSE;
+	}
+}
+
+void LightEngine::PBRMaterial::set_normal_map(std::shared_ptr<Texture> normal_map_ptr) { 
+	normal_map_ptr_ = normal_map_ptr; 
+
+	if(normal_map_ptr_ != nullptr) {
+		maps_names_.at(3) = normal_map_ptr_->get_name();
+		parameters.use_normal_map_ = TRUE;
+	}	
+	else {
+		maps_names_.at(3) = "No map";
+		parameters.use_normal_map_ = FALSE;
+	}
+}
+
+void LightEngine::PBRMaterial::set_ao_map(std::shared_ptr<Texture> ao_map_ptr) { 
+	ao_map_ptr_ = ao_map_ptr; 
+
+	if(ao_map_ptr_ != nullptr) {
+		maps_names_.at(4) = ao_map_ptr_->get_name();
+		parameters.use_ao_map_ = TRUE;
+	}	
+	else {
+		maps_names_.at(4) = "No map";
+		parameters.use_ao_map_ = FALSE;
+	}
+}
+
+std::vector<std::string> LightEngine::PBRMaterial::get_maps_names() const {
+	return maps_names_;
+}
+
 
 
 

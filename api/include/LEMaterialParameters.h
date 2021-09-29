@@ -45,7 +45,7 @@ namespace LightEngine {
 	struct PBRParameters {
 		float albedo_[4];
 		float roughness_;
-		float metallic_;
+		float metalness_;
 		float ambient_occlusion_;
 		BOOL use_albedo_map_;
 		BOOL use_roughness_map_;
@@ -59,7 +59,7 @@ namespace LightEngine {
 			albedo_[2] = 0.5f;
 			albedo_[3] = 0.5f;
 			roughness_ = 0.0f;
-			metallic_ = 0.0f;
+			metalness_ = 0.0f;
 			ambient_occlusion_ = 0.0f;
 			use_albedo_map_ = FALSE;
 			use_roughness_map_ = FALSE;

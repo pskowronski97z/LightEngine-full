@@ -15,9 +15,9 @@ float3 calculate_phong_pt(float3 specular_color, float3 diffuse_color, float3 am
     l = normalize(l);
     
     float3 specular = specular_color * pow(max(0.0f, dot(r, v)), glossiness);
-    float3 diffuse = diffuse_color * get_attenuation(d) * max(0.0f, dot(l, pixel.normal));
+    float3 diffuse = diffuse_color * max(0.0f, dot(l, pixel.normal));
     
-    return (specular + diffuse + ambient_color) * light_color;
+    return ((specular + diffuse) * get_attenuation(d) + ambient_color) * light_color;
 }
 
 float3 calculate_phong_dir(float3 specular_color, float3 diffuse_color, float3 ambient_color, float3 light_direction, float3 light_color, int glossiness, PS_INPUT pixel) {

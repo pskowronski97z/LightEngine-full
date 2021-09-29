@@ -37,11 +37,11 @@ cbuffer MATERIAL : register(b3) {
     float roughness;
     float metalness;
     float ambient_occlusion;
-    bool use_albedo_map_;
-    bool use_roughness_map_;
-    bool use_metalness_map_;
-    bool use_normal_map_;
-    bool use_ao_map_;
+    bool use_albedo_map;
+    bool use_roughness_map;
+    bool use_metalness_map;
+    bool use_normal_map;
+    bool use_ao_map;
 };
 
 Texture2D ALBEDO_MAP : register(t0);
@@ -147,27 +147,27 @@ float4 main(PS_INPUT input) : SV_TARGET {
     float used_metalness = 0.0;
     float3 used_ao = 1.0;
     
-    if(use_albedo_map_)
+    if(use_albedo_map)
         input.color = ALBEDO_MAP.Sample(DEFAULT_SAMPLER, float2(input.uvw[0], input.uvw[1]));
     else
         input.color = albedo;
     
-    if (use_roughness_map_)
+    if (use_roughness_map)
         used_roughness = ROUGHNESS_MAP.Sample(DEFAULT_SAMPLER, float2(input.uvw[0], input.uvw[1]));
     else
         used_roughness = roughness;
     
-    if(use_metalness_map_)
+    if(use_metalness_map)
         used_metalness = METALNESS_MAP.Sample(DEFAULT_SAMPLER, float2(input.uvw[0], input.uvw[1]));
     else
         used_metalness = metalness;
     
-    if (use_ao_map_)
+    if (use_ao_map)
         used_ao = AO_MAP.Sample(DEFAULT_SAMPLER, float2(input.uvw[0], input.uvw[1]));
     else
         used_ao = 1.0;
     
-    if(use_normal_map_)
+    if(use_normal_map)
         input.normal = get_mapped_normal(input);
     
     float3 lighting = get_reflectance_pt(input, point_light, used_roughness, used_metalness) * used_ao;

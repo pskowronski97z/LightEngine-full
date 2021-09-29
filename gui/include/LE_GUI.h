@@ -25,10 +25,9 @@ namespace LightEngineUI {
 		bool flip_x_ = false;
 		bool flip_y_ = false;
 		bool update_default_material_ = false;
-		bool is_diffuse_map_used_ = false;
-		bool is_normal_map_used_ = false;
+		bool update_pbr_material_ = false;
 		ImVec2 button_size_;
-
+		std::vector<std::string> button_labels_;
 	public:
 		MaterialEditor();
 		void draw() override;
