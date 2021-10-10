@@ -13,7 +13,8 @@
 #include <imgui_impl_dx11.h>
 #include <imgui_impl_win32.h>
 #include <GUI_variables.h>
-#include <LE_GUI.h>
+#include <LEFrontend.h>
+#include <LEBackend.h>
 
 //Path to a directory where all compiled HLSL shaders (from "shaders" directory) are placed
 constexpr auto COMPILED_SHADERS_DIR = L"B:\\source\\repos\\LightEngine v2\\LightEngine-full\\bin\\x64\\Debug\\compiled shaders\\";
@@ -51,10 +52,8 @@ int main(int argc, const char **argv) {
 		ImGui::StyleColorsDark();
 		ImGui_ImplWin32_Init(window.get_handle());
 		ImGui_ImplDX11_Init(core->get_device_ptr().Get(), core->get_context_ptr().Get());
-		ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 9.0f);
-		ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 9.0f);
-		ImGui::PushStyleVar(ImGuiStyleVar_GrabMinSize, 18.0f);
-		ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize,1.5f);
+		ImGui::PushStyleVar(ImGuiStyleVar_GrabMinSize, 10.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.5f);
 		std::wstring shader_directory(COMPILED_SHADERS_DIR);
 
 		LightEngine::VertexShader vs(core, shader_directory + L"CameraVS.cso");
@@ -81,7 +80,20 @@ int main(int argc, const char **argv) {
 		LightEngine::Sampler sampler_bilinear(core, LightEngine::Sampler::Filtering::BILINEAR);
 		LightEngine::Sampler sampler_trilinear(core, LightEngine::Sampler::Filtering::TRILINEAR);
 		LightEngine::Sampler sampler_anisotropic(core, LightEngine::Sampler::Filtering::ANISOTROPIC);
-		LightEngineUI::MaterialEditor material_editor;
+		LightEngineUI::Frontend::MaterialEditor material_editor;
+		LightEngineUI::Backend::TextureManager texture_manager;
+
+		LightEngine::Texture tx_1(core, "B:\\CG Projects\\Tekstury\\PaintedMetal015_2K-PNG\\PaintedMetal_Color.png");
+		LightEngine::Texture tx_2(core, "B:\\CG Projects\\Tekstury\\PaintedMetal015_2K-PNG\\PaintedMetal_NormalDX.png");
+		LightEngine::Texture tx_3(core, "B:\\CG Projects\\Tekstury\\PaintedMetal015_2K-PNG\\PaintedMetal_AmbientOcclusion.png");
+		LightEngine::Texture tx_4(core, "B:\\CG Projects\\Tekstury\\PaintedMetal015_2K-PNG\\PaintedMetal_Metalness.png");
+		LightEngine::Texture tx_5(core, "B:\\CG Projects\\Tekstury\\PaintedMetal015_2K-PNG\\PaintedMetal_Roughness.png");
+
+		texture_manager.load(tx_1, tx_1.get_name());
+		texture_manager.load(tx_2, tx_2.get_name());
+		texture_manager.load(tx_3, tx_3.get_name());
+		texture_manager.load(tx_4, tx_4.get_name());
+		texture_manager.load(tx_5, tx_5.get_name());
 
 		
 
@@ -103,7 +115,7 @@ int main(int argc, const char **argv) {
 		std::shared_ptr<LightEngine::DefaultMaterial> default_ptr = std::make_shared<LightEngine::DefaultMaterial>(default_material);
 		std::shared_ptr<LightEngine::PBRMaterial> pbr_ptr = std::make_shared<LightEngine::PBRMaterial>(pbr_material);
 
-		material_editor.load_material(default_ptr);
+		material_editor.load_material(pbr_ptr);
 
 		pbr_material.assign_vertex_shader(std::make_shared<LightEngine::VertexShader>(vs));
 		pbr_material.assign_pixel_shader(pbr_ps_ptr);
@@ -291,7 +303,7 @@ int main(int argc, const char **argv) {
 					ImGui::End();
 						
 
-					material_editor.draw();
+					material_editor.render();
 
 					ImGui::Begin("Material Browser ",nullptr);
 
@@ -407,8 +419,8 @@ int main(int argc, const char **argv) {
 
 				core->clear_back_buffer(color);
 
-				default_material.bind();
-				//pbr_material.bind();
+				//default_material.bind();
+				pbr_material.bind();
 
 				for (int i = 0; i < scene.size(); i++) {
 					scene[i].bind_topology();
