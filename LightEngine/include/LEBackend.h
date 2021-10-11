@@ -17,13 +17,13 @@ namespace LightEngineUI {
 		public:
 			void load(T &new_element, std::string new_element_name);
 			bool remove(int index);
-			std::vector<std::string> get_names() const;
+			std::vector<const char*> get_names() const;
 			std::shared_ptr<T> get_element(int index) const;			
 		};
 
 		
 		class TextureManager : public Manager<LightEngine::Texture> {
-		
+
 		public:
 			TextureManager();
 		

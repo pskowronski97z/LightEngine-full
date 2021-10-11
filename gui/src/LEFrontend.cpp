@@ -1,6 +1,12 @@
 #include <LEFrontend.h>
+#include <WinMain.h>
+
 
 constexpr int color_edit_flags = ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoInputs;
+constexpr auto image_file_filter_size = 11;
+
+COMDLG_FILTERSPEC image_file_filter[];
+
 
 LightEngineUI::Frontend::Window::Window(std::string name) : name_(std::move(name)) {
 	flags_ = ImGuiWindowFlags_NoCollapse;
@@ -160,7 +166,9 @@ void LightEngineUI::Frontend::MaterialEditor::PBRView::render(int window_width) 
 	ImGui::Separator();
 
 	ImGui::LabelText("", "Albedo map");
-	ImGui::Button(button_labels_.at(0).c_str(), button_size);
+	if(ImGui::Button(button_labels_.at(0).c_str(), button_size)) {
+		
+	}
 	
 	ImGui::LabelText("", "Roughness map");
 	ImGui::Button(button_labels_.at(1).c_str(), button_size);
@@ -175,3 +183,58 @@ void LightEngineUI::Frontend::MaterialEditor::PBRView::render(int window_width) 
 	ImGui::Button(button_labels_.at(4).c_str(), button_size);
 
 }
+
+LightEngineUI::Frontend::TextureBrowser::TextureBrowser(LightEngineUI::Backend::TextureManager &texture_manager, std::shared_ptr<LightEngine::Core> &core_ptr) : Window("Texture Browser"), CoreUser(core_ptr) {
+	texture_manager_ = std::make_shared<LightEngineUI::Backend::TextureManager>(texture_manager);
+	names_ = texture_manager_->get_names();
+}
+
+void LightEngineUI::Frontend::TextureBrowser::render() {
+
+	static ImVec2 button_size;
+	
+	ImGui::Begin(name_.c_str(), nullptr, flags_);
+	
+	button_size.x = (ImGui::GetWindowWidth()/3)-10;
+	button_size.y = 20;
+
+	static int item_current_idx = 0;
+	
+	ImGui::Text("Loaded textures");
+	if (ImGui::BeginListBox("##textures", ImVec2(-FLT_MIN, ImGui::GetWindowHeight() - 80))) {
+		for (int n = 0; n < names_.size(); n++) {
+			const bool is_selected = (item_current_idx == n);
+			if (ImGui::Selectable(names_[n], is_selected))
+				item_current_idx = n;
+		}
+		ImGui::EndListBox();
+	}
+
+	if(ImGui::Button("Load", button_size)) {
+		
+		std::string path = AppWindow::open_file_dialog(image_file_filter, image_file_filter_size);
+		if (path != "") {
+			LightEngine::Texture new_texture(core_ptr_, path);
+			texture_manager_->load(new_texture, new_texture.get_name());
+			names_ = texture_manager_->get_names();
+		}
+	
+	}
+	ImGui::SameLine();
+	if(ImGui::Button("Remove", button_size)){
+		texture_manager_->remove(item_current_idx);
+		names_ = texture_manager_->get_names();
+		item_current_idx = std::max(item_current_idx - 1, 0);
+	} 
+	ImGui::SameLine();
+	if(ImGui::Button("Select", button_size))
+		selected_index_ = item_current_idx;
+	
+	ImGui::End();
+
+}
+
+int LightEngineUI::Frontend::TextureBrowser::get_selected_item() const {
+	return names_.size() ?  selected_index_ : -1;
+}
+

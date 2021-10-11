@@ -80,22 +80,10 @@ int main(int argc, const char **argv) {
 		LightEngine::Sampler sampler_bilinear(core, LightEngine::Sampler::Filtering::BILINEAR);
 		LightEngine::Sampler sampler_trilinear(core, LightEngine::Sampler::Filtering::TRILINEAR);
 		LightEngine::Sampler sampler_anisotropic(core, LightEngine::Sampler::Filtering::ANISOTROPIC);
-		LightEngineUI::Frontend::MaterialEditor material_editor;
-		LightEngineUI::Backend::TextureManager texture_manager;
-
-		LightEngine::Texture tx_1(core, "B:\\CG Projects\\Tekstury\\PaintedMetal015_2K-PNG\\PaintedMetal_Color.png");
-		LightEngine::Texture tx_2(core, "B:\\CG Projects\\Tekstury\\PaintedMetal015_2K-PNG\\PaintedMetal_NormalDX.png");
-		LightEngine::Texture tx_3(core, "B:\\CG Projects\\Tekstury\\PaintedMetal015_2K-PNG\\PaintedMetal_AmbientOcclusion.png");
-		LightEngine::Texture tx_4(core, "B:\\CG Projects\\Tekstury\\PaintedMetal015_2K-PNG\\PaintedMetal_Metalness.png");
-		LightEngine::Texture tx_5(core, "B:\\CG Projects\\Tekstury\\PaintedMetal015_2K-PNG\\PaintedMetal_Roughness.png");
-
-		texture_manager.load(tx_1, tx_1.get_name());
-		texture_manager.load(tx_2, tx_2.get_name());
-		texture_manager.load(tx_3, tx_3.get_name());
-		texture_manager.load(tx_4, tx_4.get_name());
-		texture_manager.load(tx_5, tx_5.get_name());
-
 		
+		LightEngineUI::Backend::TextureManager texture_manager;
+		LightEngineUI::Frontend::TextureBrowser texture_browser(texture_manager,core);
+		LightEngineUI::Frontend::MaterialEditor material_editor;
 
 		std::vector<LightEngine::Vertex3> border_vertices{
 			{{-0.99,0.99,0.0},{0.4,0.4,0.4,1.0}},
@@ -304,6 +292,7 @@ int main(int argc, const char **argv) {
 						
 
 					material_editor.render();
+					texture_browser.render();
 
 					ImGui::Begin("Material Browser ",nullptr);
 

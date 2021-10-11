@@ -3,6 +3,7 @@
 #include <memory>
 #include <ImGui/imgui.h>
 #include <LEMaterial.h>
+#include <LEBackend.h>
 
 namespace LightEngineUI {
 
@@ -55,6 +56,16 @@ namespace LightEngineUI {
 			void load_material(std::shared_ptr<LightEngine::PBRMaterial>& pbr_material_ptr);
 		};
 
+		class TextureBrowser : public Window, public LightEngine::CoreUser {
+		private:
+			std::shared_ptr<LightEngineUI::Backend::TextureManager> texture_manager_;
+			std::vector<const char*> names_;
+			int selected_index_ = 0;
+		public:
+			TextureBrowser(LightEngineUI::Backend::TextureManager &texture_manager, std::shared_ptr<LightEngine::Core> &core_ptr);
+			void render() override;
+			int get_selected_item() const;
+		};
 
 	}
 }

@@ -28,12 +28,17 @@ bool LightEngineUI::Backend::Manager<LightEngine::Texture>::remove(int index);
 
 
 template<class T>
-std::vector<std::string> LightEngineUI::Backend::Manager<T>::get_names() const {
-	return names_;
+std::vector<const char*> LightEngineUI::Backend::Manager<T>::get_names() const {
+	std::vector<const char*> result;
+
+	for(auto &name : names_)
+		result.push_back(name.c_str());
+
+	return result;
 }
 
 template
-std::vector<std::string> LightEngineUI::Backend::Manager<LightEngine::Texture>::get_names() const;
+std::vector<const char*> LightEngineUI::Backend::Manager<LightEngine::Texture>::get_names() const;
 
 template<class T>
 std::shared_ptr<T> LightEngineUI::Backend::Manager<T>::get_element(int index) const {
