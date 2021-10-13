@@ -82,8 +82,9 @@ int main(int argc, const char **argv) {
 		LightEngine::Sampler sampler_anisotropic(core, LightEngine::Sampler::Filtering::ANISOTROPIC);
 		
 		LightEngineUI::Backend::TextureManager texture_manager;
-		LightEngineUI::Frontend::TextureBrowser texture_browser(texture_manager,core);
-		LightEngineUI::Frontend::MaterialEditor material_editor;
+		std::shared_ptr<LightEngineUI::Backend::TextureManager> tm_ptr = std::make_shared<LightEngineUI::Backend::TextureManager>(texture_manager);
+		LightEngineUI::Frontend::TextureBrowser texture_browser(tm_ptr,core);
+		LightEngineUI::Frontend::MaterialEditor material_editor(tm_ptr);
 
 		std::vector<LightEngine::Vertex3> border_vertices{
 			{{-0.99,0.99,0.0},{0.4,0.4,0.4,1.0}},
@@ -103,10 +104,10 @@ int main(int argc, const char **argv) {
 		std::shared_ptr<LightEngine::DefaultMaterial> default_ptr = std::make_shared<LightEngine::DefaultMaterial>(default_material);
 		std::shared_ptr<LightEngine::PBRMaterial> pbr_ptr = std::make_shared<LightEngine::PBRMaterial>(pbr_material);
 
-		material_editor.load_material(pbr_ptr);
+		material_editor.load_material(default_ptr);
 
-		pbr_material.assign_vertex_shader(std::make_shared<LightEngine::VertexShader>(vs));
-		pbr_material.assign_pixel_shader(pbr_ps_ptr);
+		pbr_ptr->assign_vertex_shader(std::make_shared<LightEngine::VertexShader>(vs));
+		pbr_ptr->assign_pixel_shader(pbr_ps_ptr);
 
 		point_light.bind_ps_buffer(1);
 		point_light.bind_vs_buffer(1);
@@ -120,7 +121,6 @@ int main(int argc, const char **argv) {
 		arcball_camera.update();
 		arcball_camera.set_active(0);
 
-	
 		while (WM_QUIT != msg.message) {
 			
 			if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
@@ -389,8 +389,8 @@ int main(int argc, const char **argv) {
 				}
 
 				if(update_material){
-					default_material.update();
-					//pbr_material.update();
+					default_ptr->update();
+					//pbr_ptr->update();
 					update_material = false;
 				}
 
@@ -408,8 +408,8 @@ int main(int argc, const char **argv) {
 
 				core->clear_back_buffer(color);
 
-				//default_material.bind();
-				pbr_material.bind();
+				default_ptr->bind();
+				//pbr_ptr->bind();
 
 				for (int i = 0; i < scene.size(); i++) {
 					scene[i].bind_topology();

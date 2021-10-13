@@ -57,7 +57,9 @@ std::string LightEngine::Material<T>::get_name() const {return name_;}
 
 
 LightEngine::DefaultMaterial::DefaultMaterial(std::shared_ptr<Core> core_ptr, std::string name) : Material(core_ptr, name) {
-	maps_names_ = std::vector<std::string>(2,"No map");
+	maps_names_ = std::vector<std::string>(2);
+	maps_names_.at(0) = "Set diffuse map";
+	maps_names_.at(1) = "Set normal map";
 }
 
 void LightEngine::DefaultMaterial::bind() const {
@@ -82,7 +84,7 @@ void LightEngine::DefaultMaterial::set_diffuse_map(std::shared_ptr<Texture> diff
 		parameters.use_diffuse_map_ = TRUE;
 	}
 	else {
-		maps_names_.at(0) = "No map";
+		maps_names_.at(0) = "Set diffuse map";
 		parameters.use_diffuse_map_ = FALSE;
 	}
 
@@ -96,7 +98,7 @@ void LightEngine::DefaultMaterial::set_normal_map(std::shared_ptr<Texture> norma
 		parameters.use_normal_map_ = TRUE;
 	}
 	else {
-		maps_names_.at(1) = "No map";
+		maps_names_.at(1) = "Set normal map";
 		parameters.use_normal_map_ = FALSE;
 	}
 }
@@ -150,7 +152,13 @@ std::vector<std::string> LightEngine::DefaultMaterial::get_maps_names() const {
 
 
 LightEngine::PBRMaterial::PBRMaterial(std::shared_ptr<Core> core_ptr, std::string name) : Material(core_ptr, name) {
-	maps_names_ = std::vector<std::string>(5,"No map");
+	maps_names_ = std::vector<std::string>(5);
+
+	maps_names_.at(0) = "Set albedo map";
+	maps_names_.at(1) = "Set roughness map";
+	maps_names_.at(2) = "Set metalness map";
+	maps_names_.at(3) = "Set normal map";
+	maps_names_.at(4) = "Set ambient occlusion map";
 }
 
 void LightEngine::PBRMaterial::bind() const {
@@ -192,7 +200,7 @@ void LightEngine::PBRMaterial::set_albedo_map(std::shared_ptr<Texture> albedo_ma
 		parameters.use_albedo_map_ = TRUE;
 	}	
 	else {
-		maps_names_.at(0) = "No map";
+		maps_names_.at(0) = "Set albedo map";
 		parameters.use_albedo_map_ = FALSE;
 	}		
 }
@@ -205,7 +213,7 @@ void LightEngine::PBRMaterial::set_roughness_map(std::shared_ptr<Texture> roughn
 		parameters.use_roughness_map_ = TRUE;
 	}	
 	else {
-		maps_names_.at(1) = "No map";
+		maps_names_.at(1) = "Set roughness map";
 		parameters.use_roughness_map_ = FALSE;
 	}	
 }
@@ -218,7 +226,7 @@ void LightEngine::PBRMaterial::set_metalness_map(std::shared_ptr<Texture> metaln
 		parameters.use_metalness_map_ = TRUE;
 	}	
 	else {
-		maps_names_.at(2) = "No map";
+		maps_names_.at(2) = "Set metalness map";
 		parameters.use_metalness_map_ = FALSE;
 	}
 }
@@ -231,7 +239,7 @@ void LightEngine::PBRMaterial::set_normal_map(std::shared_ptr<Texture> normal_ma
 		parameters.use_normal_map_ = TRUE;
 	}	
 	else {
-		maps_names_.at(3) = "No map";
+		maps_names_.at(3) = "Set normal map";
 		parameters.use_normal_map_ = FALSE;
 	}
 }
@@ -244,7 +252,7 @@ void LightEngine::PBRMaterial::set_ao_map(std::shared_ptr<Texture> ao_map_ptr) {
 		parameters.use_ao_map_ = TRUE;
 	}	
 	else {
-		maps_names_.at(4) = "No map";
+		maps_names_.at(4) = "Set ambient occlusion map";
 		parameters.use_ao_map_ = FALSE;
 	}
 }

@@ -22,9 +22,11 @@ namespace LightEngineUI {
 		private:
 			class View {
 			protected:
+				std::shared_ptr<LightEngineUI::Backend::TextureManager> texture_manager_ptr_;
 				std::vector<std::string> button_labels_;
 				std::string material_name_;
 			public:
+				View(std::shared_ptr<LightEngineUI::Backend::TextureManager> &texture_manager_ptr);
 				virtual void render(int window_width) = 0;
 			};
 
@@ -35,7 +37,7 @@ namespace LightEngineUI {
 				bool flip_x_ = false;
 				bool flip_y_ = false;
 			public:
-				DefaultView(std::shared_ptr<LightEngine::DefaultMaterial>& material_ptr);
+				DefaultView(std::shared_ptr<LightEngine::DefaultMaterial>& material_ptr, std::shared_ptr<LightEngineUI::Backend::TextureManager> &texture_manager);
 				void render(int window_width) override;
 			};
 
@@ -43,14 +45,14 @@ namespace LightEngineUI {
 				std::shared_ptr<LightEngine::PBRMaterial> material_ptr_ = nullptr;
 				LightEngine::PBRParameters parameters_;
 			public:
-				PBRView(std::shared_ptr<LightEngine::PBRMaterial>& material_ptr);
+				PBRView(std::shared_ptr<LightEngine::PBRMaterial>& material_ptr, std::shared_ptr<LightEngineUI::Backend::TextureManager> &texture_manager);
 				void render(int window_width) override;
 			};
 
 			std::shared_ptr<View> view_ptr = nullptr;
-
+			std::shared_ptr<LightEngineUI::Backend::TextureManager> texture_manager_ptr_;
 		public:
-			MaterialEditor();
+			MaterialEditor(std::shared_ptr<LightEngineUI::Backend::TextureManager> &texture_manager_ptr);
 			void render() override;
 			void load_material(std::shared_ptr<LightEngine::DefaultMaterial>& default_material_ptr);
 			void load_material(std::shared_ptr<LightEngine::PBRMaterial>& pbr_material_ptr);
@@ -58,13 +60,12 @@ namespace LightEngineUI {
 
 		class TextureBrowser : public Window, public LightEngine::CoreUser {
 		private:
-			std::shared_ptr<LightEngineUI::Backend::TextureManager> texture_manager_;
+			std::shared_ptr<LightEngineUI::Backend::TextureManager> texture_manager_ptr_;
 			std::vector<const char*> names_;
-			int selected_index_ = 0;
+
 		public:
-			TextureBrowser(LightEngineUI::Backend::TextureManager &texture_manager, std::shared_ptr<LightEngine::Core> &core_ptr);
+			TextureBrowser(std::shared_ptr<LightEngineUI::Backend::TextureManager> &texture_manager_ptr, std::shared_ptr<LightEngine::Core> &core_ptr);
 			void render() override;
-			int get_selected_item() const;
 		};
 
 	}

@@ -40,15 +40,20 @@ std::vector<const char*> LightEngineUI::Backend::Manager<T>::get_names() const {
 template
 std::vector<const char*> LightEngineUI::Backend::Manager<LightEngine::Texture>::get_names() const;
 
-template<class T>
-std::shared_ptr<T> LightEngineUI::Backend::Manager<T>::get_element(int index) const {
-	if(index >= elements_.size())
+std::shared_ptr<LightEngine::Texture> LightEngineUI::Backend::TextureManager::get_selected_texture() const {
+	if(selected_texture_ >= elements_.size())
 		return nullptr;
 
-	return elements_[index];
+	return elements_[selected_texture_];
 }
 
-template
-std::shared_ptr<LightEngine::Texture> LightEngineUI::Backend::Manager<LightEngine::Texture>::get_element(int index) const;
+bool LightEngineUI::Backend::TextureManager::select_texture(int index) {
+	if(!elements_.size() || index >= elements_.size() || index < 0)
+		return false;
+
+	selected_texture_ = index;
+	return true;
+}
+
 
 LightEngineUI::Backend::TextureManager::TextureManager() : Manager() {}
