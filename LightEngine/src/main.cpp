@@ -102,7 +102,7 @@ int main(int argc, const char **argv) {
 		default_material.assign_pixel_shader(blinn_ps_ptr);
 
 		std::shared_ptr<LightEngine::DefaultMaterial> default_ptr = std::make_shared<LightEngine::DefaultMaterial>(default_material);
-		std::shared_ptr<LightEngine::PBRMaterial> pbr_ptr = std::make_shared<LightEngine::PBRMaterial>(pbr_material);
+		std::shared_ptr<LightEngine::PBRMaterial> pbr_ptr = std::make_shared<LightEngine::PBRMaterial>(pbr_material);	
 
 		material_editor.load_material(default_ptr);
 

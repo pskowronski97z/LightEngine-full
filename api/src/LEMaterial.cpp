@@ -141,9 +141,13 @@ void LightEngine::DefaultMaterial::set_ambient_color(float ambient[3]) {
 	parameters.ambient[2] = ambient[2];
 }
 
-void LightEngine::DefaultMaterial::flip_tangent() { parameters.flip_tb_vectors_ = (0xFF00 & parameters.flip_tb_vectors_) | ((~parameters.flip_tb_vectors_& 0xFF) & 0x2);}
+void LightEngine::DefaultMaterial::flip_tangent() { 
+	parameters.flip_tb_vectors_ = (0xFF00 & parameters.flip_tb_vectors_) | ((~parameters.flip_tb_vectors_& 0xFF) & 0x2);
+}
 
-void LightEngine::DefaultMaterial::flip_bitangent() { parameters.flip_tb_vectors_ = (0x00FF & parameters.flip_tb_vectors_) | ((~parameters.flip_tb_vectors_& 0xFF00) & (0x2<<8));}
+void LightEngine::DefaultMaterial::flip_bitangent() { 
+	parameters.flip_tb_vectors_ = (0x00FF & parameters.flip_tb_vectors_) | ((~parameters.flip_tb_vectors_& 0xFF00) & (0x2<<8));
+}
 
 std::vector<std::string> LightEngine::DefaultMaterial::get_maps_names() const {
 	return maps_names_;

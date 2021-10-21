@@ -52,10 +52,10 @@ cbuffer MATERIAL : register(b3) {
 float3 get_mapped_normal(PS_INPUT pixel) {
     
     float4 normal_sample = NORMAL_MAP.Sample(DEFAULT_SAMPLER, float2(pixel.uvw[0], pixel.uvw[1]));
+       
+    float scale_t = 1.0 - (0xFF & flip_tb_vectors_);
+    float scale_b = 1.0 - (flip_tb_vectors_ >> 8);
     
-    float scale_t = 1.0 - asfloat(0xFF & flip_tb_vectors_);
-    float scale_b = 1.0 - asfloat(0xFF & (flip_tb_vectors_ >> 8));
-      
     float3x3 tbn_matrix = float3x3(scale_t * normalize(pixel.tangent), scale_b * normalize(pixel.bitangent), normalize(pixel.normal));
     
     normal_sample = normalize(normal_sample * 2.0 - 1.0);

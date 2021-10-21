@@ -105,9 +105,9 @@ void LightEngineUI::Frontend::MaterialEditor::DefaultView::render(int window_wid
 
 	ImGui::LabelText("", "Diffuse map");
 
-	//TODO: Add functionality 
+	
 	if (ImGui::Button(button_labels_.at(0).c_str(), button_size)) {
-		texture = texture_manager_ptr_->get_selected_texture();
+		texture = texture_manager_ptr_->get_selected_item();
 		if (texture != nullptr) {
 			material_ptr_->set_diffuse_map(texture);
 			button_labels_.at(0) = texture->get_name();
@@ -123,24 +123,26 @@ void LightEngineUI::Frontend::MaterialEditor::DefaultView::render(int window_wid
 
 	ImGui::LabelText("", "Normal map");
 
-	//TODO: Add functionality 
+	
 	if (ImGui::Button(button_labels_.at(1).c_str(), button_size)) {
-		texture = texture_manager_ptr_->get_selected_texture();
+		texture = texture_manager_ptr_->get_selected_item();
 		if (texture != nullptr) {
 			material_ptr_->set_normal_map(texture);
 			button_labels_.at(1) = texture->get_name();
-			material_ptr_->update();
-			parameters_ = material_ptr_->get_all_parameters();
+			parameters_.use_normal_map_ = TRUE;
+			material_ptr_->update();		
 		}
 	}
 	ImGui::SameLine();
 	if(ImGui::Button("Clear##2", ImVec2(60,20))) {
 		material_ptr_->set_normal_map(nullptr);
 		button_labels_.at(1) = "Set normal map";
+		parameters_.use_normal_map_ = FALSE;
 		material_ptr_->update();	
+		
 	}
 
-	// TODO
+	
 	if (parameters_.use_normal_map_) {
 		if (ImGui::Checkbox("Flip X", &flip_x_)) {
 			material_ptr_->flip_tangent();
@@ -154,7 +156,7 @@ void LightEngineUI::Frontend::MaterialEditor::DefaultView::render(int window_wid
 			material_ptr_->update();
 		}
 	}
-
+	
 }
 
 LightEngineUI::Frontend::MaterialEditor::PBRView::PBRView(std::shared_ptr<LightEngine::PBRMaterial>& material_ptr, std::shared_ptr<LightEngineUI::Backend::TextureManager> &texture_manager) : View(texture_manager), material_ptr_(material_ptr) {
@@ -196,7 +198,7 @@ void LightEngineUI::Frontend::MaterialEditor::PBRView::render(int window_width) 
 
 	ImGui::LabelText("", "Albedo map");
 	if(ImGui::Button(button_labels_.at(0).c_str(), button_size)) {
-		texture = texture_manager_ptr_->get_selected_texture();
+		texture = texture_manager_ptr_->get_selected_item();
 		if (texture != nullptr) {
 			material_ptr_->set_albedo_map(texture);
 			button_labels_.at(0) = texture->get_name();
@@ -214,7 +216,7 @@ void LightEngineUI::Frontend::MaterialEditor::PBRView::render(int window_width) 
 
 	ImGui::LabelText("", "Roughness map");
 	if(ImGui::Button(button_labels_.at(1).c_str(), button_size)) {
-		texture = texture_manager_ptr_->get_selected_texture();
+		texture = texture_manager_ptr_->get_selected_item();
 		if (texture != nullptr) {
 			material_ptr_->set_roughness_map(texture);
 			button_labels_.at(1) = texture->get_name();
@@ -233,7 +235,7 @@ void LightEngineUI::Frontend::MaterialEditor::PBRView::render(int window_width) 
 
 	ImGui::LabelText("", "Metalness map");
 	if(ImGui::Button(button_labels_.at(2).c_str(), button_size)) {
-		texture = texture_manager_ptr_->get_selected_texture();
+		texture = texture_manager_ptr_->get_selected_item();
 		if (texture != nullptr) {
 			material_ptr_->set_metalness_map(texture);
 			button_labels_.at(2) = texture->get_name();
@@ -252,7 +254,7 @@ void LightEngineUI::Frontend::MaterialEditor::PBRView::render(int window_width) 
 
 	ImGui::LabelText("", "Normal map");
 	if(ImGui::Button(button_labels_.at(3).c_str(), button_size)) {
-		texture = texture_manager_ptr_->get_selected_texture();
+		texture = texture_manager_ptr_->get_selected_item();
 		if (texture != nullptr) {
 			material_ptr_->set_normal_map(texture);
 			button_labels_.at(3) = texture->get_name();
@@ -271,7 +273,7 @@ void LightEngineUI::Frontend::MaterialEditor::PBRView::render(int window_width) 
 
 	ImGui::LabelText("", "Ambient occlusion map");
 	if(ImGui::Button(button_labels_.at(4).c_str(), button_size)) {
-		texture = texture_manager_ptr_->get_selected_texture();
+		texture = texture_manager_ptr_->get_selected_item();
 		if (texture != nullptr) {
 			material_ptr_->set_ao_map(texture);
 			button_labels_.at(4) = texture->get_name();
@@ -288,9 +290,13 @@ void LightEngineUI::Frontend::MaterialEditor::PBRView::render(int window_width) 
 }
 
 LightEngineUI::Frontend::TextureBrowser::TextureBrowser(std::shared_ptr<LightEngineUI::Backend::TextureManager> &texture_manager_ptr, std::shared_ptr<LightEngine::Core> &core_ptr)
-	: Window("Texture Browser"), CoreUser(core_ptr), texture_manager_ptr_(texture_manager_ptr) {
-	names_ = texture_manager_ptr_->get_names();
+	: ListBrowser("Texture Browser", texture_manager_ptr), CoreUser(core_ptr) {
+	names_ = backend_ptr_->get_names();
 }
+
+template<class T>
+LightEngineUI::Frontend::ListBrowser<T>::ListBrowser(std::string name, std::shared_ptr<T> &backend_ptr) : Window(name), backend_ptr_(backend_ptr) {}
+
 
 void LightEngineUI::Frontend::TextureBrowser::render() {
 
@@ -318,20 +324,20 @@ void LightEngineUI::Frontend::TextureBrowser::render() {
 		std::string path = AppWindow::open_file_dialog(image_file_filter, image_file_filter_size);
 		if (path != "") {
 			LightEngine::Texture new_texture(core_ptr_, path);
-			texture_manager_ptr_->load(new_texture, new_texture.get_name());
-			names_ = texture_manager_ptr_->get_names();
+			backend_ptr_->load(new_texture, new_texture.get_name());
+			names_ = backend_ptr_->get_names();
 		}
 	
 	}
 	ImGui::SameLine();
 	if(ImGui::Button("Remove", button_size)){
-		texture_manager_ptr_->remove(item_current_idx);
-		names_ = texture_manager_ptr_->get_names();
+		backend_ptr_->remove(item_current_idx);
+		names_ = backend_ptr_->get_names();
 		item_current_idx = std::max(item_current_idx - 1, 0);
 	} 
 	ImGui::SameLine();
 	if(ImGui::Button("Select", button_size))
-		texture_manager_ptr_->select_texture(item_current_idx);
+		backend_ptr_->select_item(item_current_idx);
 	
 	ImGui::End();
 

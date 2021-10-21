@@ -37,7 +37,7 @@ namespace LightEngineUI {
 				bool flip_x_ = false;
 				bool flip_y_ = false;
 			public:
-				DefaultView(std::shared_ptr<LightEngine::DefaultMaterial>& material_ptr, std::shared_ptr<LightEngineUI::Backend::TextureManager> &texture_manager);
+				DefaultView(std::shared_ptr<LightEngine::DefaultMaterial> &material_ptr, std::shared_ptr<LightEngineUI::Backend::TextureManager> &texture_manager);
 				void render(int window_width) override;
 			};
 
@@ -54,19 +54,28 @@ namespace LightEngineUI {
 		public:
 			MaterialEditor(std::shared_ptr<LightEngineUI::Backend::TextureManager> &texture_manager_ptr);
 			void render() override;
-			void load_material(std::shared_ptr<LightEngine::DefaultMaterial>& default_material_ptr);
-			void load_material(std::shared_ptr<LightEngine::PBRMaterial>& pbr_material_ptr);
+			void load_material(std::shared_ptr<LightEngine::DefaultMaterial> &default_material_ptr);
+			void load_material(std::shared_ptr<LightEngine::PBRMaterial> &pbr_material_ptr);
 		};
 
-		class TextureBrowser : public Window, public LightEngine::CoreUser {
-		private:
-			std::shared_ptr<LightEngineUI::Backend::TextureManager> texture_manager_ptr_;
+		template<class T>
+		class ListBrowser : public Window {
+		protected:
+			std::shared_ptr<T> backend_ptr_;
 			std::vector<const char*> names_;
+			ListBrowser(std::string name, std::shared_ptr<T> &backend_ptr);
+		
+		};
 
+		class TextureBrowser : public ListBrowser<LightEngineUI::Backend::TextureManager>, public LightEngine::CoreUser {
 		public:
 			TextureBrowser(std::shared_ptr<LightEngineUI::Backend::TextureManager> &texture_manager_ptr, std::shared_ptr<LightEngine::Core> &core_ptr);
 			void render() override;
 		};
+
+
+
+		
 
 	}
 }
