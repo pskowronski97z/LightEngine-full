@@ -22,60 +22,68 @@ namespace LightEngineUI {
 		private:
 			class View {
 			protected:
-				std::shared_ptr<LightEngineUI::Backend::TextureManager> texture_manager_ptr_;
+				std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::Texture>> texture_browser_model_ptr_;
 				std::vector<std::string> button_labels_;
 				std::string material_name_;
 			public:
-				View(std::shared_ptr<LightEngineUI::Backend::TextureManager> &texture_manager_ptr);
+				View(std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::Texture>> &texture_browser_model_ptr);
 				virtual void render(int window_width) = 0;
 			};
 
-			class DefaultView : public View {
+			class BasicView : public View {
 			private:
-				std::shared_ptr<LightEngine::DefaultMaterial> material_ptr_ = nullptr;
+				std::shared_ptr<LightEngine::Materials::BasicMaterial> material_ptr_ = nullptr;
 				LightEngine::DefaultParameters parameters_;
 				bool flip_x_ = false;
 				bool flip_y_ = false;
 			public:
-				DefaultView(std::shared_ptr<LightEngine::DefaultMaterial> &material_ptr, std::shared_ptr<LightEngineUI::Backend::TextureManager> &texture_manager);
+				BasicView(
+					std::shared_ptr<LightEngine::Materials::BasicMaterial> &material_ptr, 
+					std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::Texture>> &texture_browser_model_ptr);
 				void render(int window_width) override;
 			};
 
 			class PBRView : public View {
-				std::shared_ptr<LightEngine::PBRMaterial> material_ptr_ = nullptr;
+				std::shared_ptr<LightEngine::Materials::PBRMaterial> material_ptr_ = nullptr;
 				LightEngine::PBRParameters parameters_;
 			public:
-				PBRView(std::shared_ptr<LightEngine::PBRMaterial>& material_ptr, std::shared_ptr<LightEngineUI::Backend::TextureManager> &texture_manager);
+				PBRView(
+					std::shared_ptr<LightEngine::Materials::PBRMaterial>& material_ptr, 
+					std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::Texture>> &texture_browser_model_ptr);
 				void render(int window_width) override;
 			};
 
 			std::shared_ptr<View> view_ptr = nullptr;
-			std::shared_ptr<LightEngineUI::Backend::TextureManager> texture_manager_ptr_;
+			std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::Texture>> texture_browser_model_ptr_;
 		public:
-			MaterialEditor(std::shared_ptr<LightEngineUI::Backend::TextureManager> &texture_manager_ptr);
+			MaterialEditor(std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::Texture>> &model_ptr);
 			void render() override;
-			void load_material(std::shared_ptr<LightEngine::DefaultMaterial> &default_material_ptr);
-			void load_material(std::shared_ptr<LightEngine::PBRMaterial> &pbr_material_ptr);
+			void load_material(std::shared_ptr<LightEngine::Materials::BasicMaterial> &default_material_ptr);
+			void load_material(std::shared_ptr<LightEngine::Materials::PBRMaterial> &pbr_material_ptr);
 		};
 
 		template<class T>
-		class ListBrowser : public Window {
+		class Browser : public Window {
 		protected:
-			std::shared_ptr<T> backend_ptr_;
+			std::shared_ptr<LightEngineUI::Backend::BrowserModel<T>> browser_model_ptr_;
 			std::vector<const char*> names_;
-			ListBrowser(std::string name, std::shared_ptr<T> &backend_ptr);
+			Browser(std::string name, std::shared_ptr<LightEngineUI::Backend::BrowserModel<T>> &browser_model_ptr);
 		
 		};
 
-		class TextureBrowser : public ListBrowser<LightEngineUI::Backend::TextureManager>, public LightEngine::CoreUser {
+		class TextureBrowser : public Browser<LightEngine::Texture>, public LightEngine::CoreUser {
 		public:
-			TextureBrowser(std::shared_ptr<LightEngineUI::Backend::TextureManager> &texture_manager_ptr, std::shared_ptr<LightEngine::Core> &core_ptr);
+			TextureBrowser(
+				std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::Texture>> &texture_browser_model_ptr, 
+				std::shared_ptr<LightEngine::Core> &core_ptr);
 			void render() override;
 		};
-
-
-
 		
-
+		class BasicMaterialsBrowser : public Browser<LightEngine::Materials::BasicMaterial> {
+		public:
+			BasicMaterialsBrowser(std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::Materials::BasicMaterial>> &bm_browser_model_ptr);
+			void render() override;	
+		};
+		
 	}
 }

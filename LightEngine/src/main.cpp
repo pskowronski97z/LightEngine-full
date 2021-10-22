@@ -74,17 +74,21 @@ int main(int argc, const char **argv) {
 		LightEngine::LightSource point_light(core, 1.0);
 		LightEngine::LightSource direct_light(core, 0.0);
 		LightEngine::DEBUG_VSTransform transform(core);
-		LightEngine::DefaultMaterial default_material(core, "Default00");
-		LightEngine::PBRMaterial pbr_material(core, "PBR_Metallic_Roughness");
+		LightEngine::Materials::BasicMaterial default_material(core, "Default00");
+		LightEngine::Materials::PBRMaterial pbr_material(core, "PBR_Metallic_Roughness");
 		LightEngine::Sampler sampler_nearest(core, LightEngine::Sampler::Filtering::NEAREST);
 		LightEngine::Sampler sampler_bilinear(core, LightEngine::Sampler::Filtering::BILINEAR);
 		LightEngine::Sampler sampler_trilinear(core, LightEngine::Sampler::Filtering::TRILINEAR);
 		LightEngine::Sampler sampler_anisotropic(core, LightEngine::Sampler::Filtering::ANISOTROPIC);
 		
-		LightEngineUI::Backend::TextureManager texture_manager;
-		std::shared_ptr<LightEngineUI::Backend::TextureManager> tm_ptr = std::make_shared<LightEngineUI::Backend::TextureManager>(texture_manager);
-		LightEngineUI::Frontend::TextureBrowser texture_browser(tm_ptr,core);
-		LightEngineUI::Frontend::MaterialEditor material_editor(tm_ptr);
+		//LightEngineUI::Backend::TextureManager texture_manager;
+		LightEngineUI::Backend::BrowserModel<LightEngine::Texture> texture_browser_model;
+		LightEngineUI::Backend::BrowserModel<LightEngine::Materials::BasicMaterial> bm_browser_model;
+		std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::Materials::BasicMaterial>> bm_browser_model_ptr = std::make_shared<LightEngineUI::Backend::BrowserModel<LightEngine::Materials::BasicMaterial>>(bm_browser_model);
+		std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::Texture>> tbm_ptr = std::make_shared<LightEngineUI::Backend::BrowserModel<LightEngine::Texture>>(texture_browser_model);
+		LightEngineUI::Frontend::TextureBrowser texture_browser(tbm_ptr,core);
+		LightEngineUI::Frontend::MaterialEditor material_editor(tbm_ptr);
+		LightEngineUI::Frontend::BasicMaterialsBrowser bm_browser(bm_browser_model_ptr);
 
 		std::vector<LightEngine::Vertex3> border_vertices{
 			{{-0.99,0.99,0.0},{0.4,0.4,0.4,1.0}},
@@ -101,10 +105,10 @@ int main(int argc, const char **argv) {
 		default_material.assign_vertex_shader(std::make_shared<LightEngine::VertexShader>(vs));
 		default_material.assign_pixel_shader(blinn_ps_ptr);
 
-		std::shared_ptr<LightEngine::DefaultMaterial> default_ptr = std::make_shared<LightEngine::DefaultMaterial>(default_material);
-		std::shared_ptr<LightEngine::PBRMaterial> pbr_ptr = std::make_shared<LightEngine::PBRMaterial>(pbr_material);	
+		std::shared_ptr<LightEngine::Materials::BasicMaterial> default_ptr = std::make_shared<LightEngine::Materials::BasicMaterial>(default_material);
+		std::shared_ptr<LightEngine::Materials::PBRMaterial> pbr_ptr = std::make_shared<LightEngine::Materials::PBRMaterial>(pbr_material);	
 
-		material_editor.load_material(default_ptr);
+		material_editor.load_material(pbr_ptr);
 
 		pbr_ptr->assign_vertex_shader(std::make_shared<LightEngine::VertexShader>(vs));
 		pbr_ptr->assign_pixel_shader(pbr_ps_ptr);
@@ -293,12 +297,7 @@ int main(int argc, const char **argv) {
 
 					material_editor.render();
 					texture_browser.render();
-
-					ImGui::Begin("Material Browser ",nullptr);
-
-					ImGui::End();
-					
-
+					bm_browser.render();
 
 					ImGui::Render();								
 				}
@@ -389,8 +388,8 @@ int main(int argc, const char **argv) {
 				}
 
 				if(update_material){
-					default_ptr->update();
-					//pbr_ptr->update();
+					//default_ptr->update();
+					pbr_ptr->update();
 					update_material = false;
 				}
 
@@ -408,8 +407,8 @@ int main(int argc, const char **argv) {
 
 				core->clear_back_buffer(color);
 
-				default_ptr->bind();
-				//pbr_ptr->bind();
+				//default_ptr->bind();
+				pbr_ptr->bind();
 
 				for (int i = 0; i < scene.size(); i++) {
 					scene[i].bind_topology();
