@@ -81,14 +81,14 @@ int main(int argc, const char **argv) {
 		LightEngine::Sampler sampler_trilinear(core, LightEngine::Sampler::Filtering::TRILINEAR);
 		LightEngine::Sampler sampler_anisotropic(core, LightEngine::Sampler::Filtering::ANISOTROPIC);
 		
-		//LightEngineUI::Backend::TextureManager texture_manager;
+		
 		LightEngineUI::Backend::BrowserModel<LightEngine::Texture> texture_browser_model;
 		LightEngineUI::Backend::BrowserModel<LightEngine::Materials::BasicMaterial> bm_browser_model;
 		std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::Materials::BasicMaterial>> bm_browser_model_ptr = std::make_shared<LightEngineUI::Backend::BrowserModel<LightEngine::Materials::BasicMaterial>>(bm_browser_model);
 		std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::Texture>> tbm_ptr = std::make_shared<LightEngineUI::Backend::BrowserModel<LightEngine::Texture>>(texture_browser_model);
 		LightEngineUI::Frontend::TextureBrowser texture_browser(tbm_ptr,core);
 		LightEngineUI::Frontend::MaterialEditor material_editor(tbm_ptr);
-		LightEngineUI::Frontend::BasicMaterialsBrowser bm_browser(bm_browser_model_ptr);
+		LightEngineUI::Frontend::BasicMaterialsBrowser bm_browser(bm_browser_model_ptr,core);
 
 		std::vector<LightEngine::Vertex3> border_vertices{
 			{{-0.99,0.99,0.0},{0.4,0.4,0.4,1.0}},

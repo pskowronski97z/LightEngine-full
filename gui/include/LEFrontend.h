@@ -74,14 +74,15 @@ namespace LightEngineUI {
 		class TextureBrowser : public Browser<LightEngine::Texture>, public LightEngine::CoreUser {
 		public:
 			TextureBrowser(
-				std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::Texture>> &texture_browser_model_ptr, 
+				std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::Texture>> &texture_browser_model_ptr,
 				std::shared_ptr<LightEngine::Core> &core_ptr);
 			void render() override;
 		};
 		
-		class BasicMaterialsBrowser : public Browser<LightEngine::Materials::BasicMaterial> {
+		class BasicMaterialsBrowser : public Browser<LightEngine::Materials::BasicMaterial>, public LightEngine::CoreUser {
 		public:
-			BasicMaterialsBrowser(std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::Materials::BasicMaterial>> &bm_browser_model_ptr);
+			BasicMaterialsBrowser(std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::Materials::BasicMaterial>> &bm_browser_model_ptr,
+				std::shared_ptr<LightEngine::Core> &core_ptr);
 			void render() override;	
 		};
 		

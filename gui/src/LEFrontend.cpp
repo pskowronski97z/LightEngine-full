@@ -1,7 +1,7 @@
 #include <LEFrontend.h>
 #include <WinMain.h>
 
-
+constexpr auto COMPILED_SHADERS_DIR = L"B:\\source\\repos\\LightEngine v2\\LightEngine-full\\bin\\x64\\Debug\\compiled shaders\\";
 constexpr int color_edit_flags = ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoInputs;
 constexpr auto image_file_filter_size = 11;
 
@@ -362,8 +362,13 @@ LightEngineUI::Frontend::MaterialEditor::View::View(
 	: texture_browser_model_ptr_(texture_browser_model_ptr) {}
 
 LightEngineUI::Frontend::BasicMaterialsBrowser::BasicMaterialsBrowser(
-	std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::Materials::BasicMaterial>> &bm_browser_model_ptr)
-	: Browser("Basic Materials", bm_browser_model_ptr) {}
+	std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::Materials::BasicMaterial>> &bm_browser_model_ptr,
+	std::shared_ptr<LightEngine::Core> &core_ptr)
+	: Browser("Basic Materials", bm_browser_model_ptr), CoreUser(core_ptr) {
+
+
+
+}
 
 void LightEngineUI::Frontend::BasicMaterialsBrowser::render() {
 
