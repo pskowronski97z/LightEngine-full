@@ -170,7 +170,7 @@ float4 main(PS_INPUT input) : SV_TARGET {
     if(use_normal_map)
         input.normal = get_mapped_normal(input);
     
-    float3 lighting = get_reflectance_pt(input, point_light, used_roughness, used_metalness) * used_ao;
+    float3 lighting = get_reflectance_dir(input, direct_light, used_roughness, used_metalness) * used_ao;
     lighting = lighting / (lighting + 1.0f); // Conversion to HDR
     lighting = pow(lighting, 0.8f); // Gamma correction
     

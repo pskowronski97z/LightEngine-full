@@ -11,11 +11,13 @@ LightEngine::Camera::Camera(std::shared_ptr<Core> core_ptr) : ConstantBuffer(cor
 	D3D11_BUFFER_DESC buffer_desc;
 	D3D11_SUBRESOURCE_DATA sr_data;
 
-	set_fov(45);
-	set_clipping(1.0,10.0);
-	set_scaling(16,9);
+	fov_ = 45.0f * M_PI / 180.0f;
+	aspect_ratio_ = 16.0f / 9.0f;
+	near_z_ = 10.0f;
+	far_z_ = 100.0f;
+	
+	update_projection_matrix();
 	reset();
-	update_projection();
 
 	try {
 		create_constant_buffer<TransformMatrices>(std::make_shared<TransformMatrices>(transform_matrices_));
@@ -28,50 +30,28 @@ LightEngine::Camera::Camera(std::shared_ptr<Core> core_ptr) : ConstantBuffer(cor
 
 }
 
-void LightEngine::Camera::set_fov(float angle) {
-	temp_projection_matrix_[0][0] = 1.0/tan(angle*M_PI/360.0);
-	temp_projection_matrix_[1][1] = 1.0/tan(angle*M_PI/360.0);
-	need_projection_update = true;
+void LightEngine::Camera::set_fov(float angle_in_degrees) {	fov_ = angle_in_degrees * M_PI / 180.0f; }
+
+void LightEngine::Camera::set_aspect_ratio(float aspect_ratio) { aspect_ratio_ = aspect_ratio; }
+
+void LightEngine::Camera::set_clipping_near(float near_z) { near_z_ = near_z; }
+
+void LightEngine::Camera::set_clipping_far(float far_z) { far_z_ = far_z; }
+
+void LightEngine::Camera::update_projection_matrix() {
+	transform_matrices_.projection_matrix = DirectX::XMMatrixPerspectiveFovLH(fov_, aspect_ratio_, near_z_, far_z_);
 }
 
-void LightEngine::Camera::set_clipping(float near_z, float far_z) {
-	temp_projection_matrix_[2][2] = 1.0f / (far_z - near_z);
-	temp_projection_matrix_[3][2] = -near_z / (far_z - near_z);
-	need_projection_update = true;
-}
-
-void LightEngine::Camera::set_scaling(short width, short height) {
-	scaling_ = static_cast<float>(height) / static_cast<float>(width);
-	need_projection_update = true;
-}
-
-void LightEngine::Camera::update_preprocess() {
-	if(need_projection_update) 
-		update_projection();
-}
-
-void LightEngine::Camera::update_projection() {
-	transform_matrices_.projection_matrix = DirectX::XMMatrixSet(
-		temp_projection_matrix_[0][0]*scaling_, temp_projection_matrix_[0][1], temp_projection_matrix_[0][2], temp_projection_matrix_[0][3],
-		temp_projection_matrix_[1][0], temp_projection_matrix_[1][1], temp_projection_matrix_[1][2], temp_projection_matrix_[1][3],
-		temp_projection_matrix_[2][0], temp_projection_matrix_[2][1], temp_projection_matrix_[2][2], temp_projection_matrix_[2][3],
-		temp_projection_matrix_[3][0], temp_projection_matrix_[3][1], temp_projection_matrix_[3][2], temp_projection_matrix_[3][3]
-	);
-	need_projection_update = false;
-}
-
-void LightEngine::Camera::set_active(short slot) {
+void LightEngine::Camera::bind(short slot) {
 	bind_vs_buffer(slot);
 	bind_ps_buffer(slot);
 }
 
 void LightEngine::Camera::update() {
 
-	update_preprocess();
-
 	TransformMatrices transposed_matrices;
 
-	transposed_matrices.camera_matrix = XMMatrixTranspose(transform_matrices_.camera_matrix);
+	transposed_matrices.view_matrix = XMMatrixTranspose(transform_matrices_.view_matrix);
 	transposed_matrices.projection_matrix = XMMatrixTranspose(transform_matrices_.projection_matrix);
 		
 	try {
@@ -85,7 +65,7 @@ void LightEngine::Camera::update() {
 }
 
 void LightEngine::Camera::reset() {
-	transform_matrices_.camera_matrix = DirectX::XMMatrixSet(
+	transform_matrices_.view_matrix = DirectX::XMMatrixSet(
 		1, 0, 0, 0,
 		0, 1, 0, 0,
 		0, 0, 1, 0,
@@ -94,9 +74,10 @@ void LightEngine::Camera::reset() {
 }
 
 std::shared_ptr<const DirectX::XMMATRIX> LightEngine::Camera::get_camera_matrix() {
-	return std::make_shared<const DirectX::XMMATRIX>(transform_matrices_.camera_matrix);
+	return std::make_shared<const DirectX::XMMATRIX>(transform_matrices_.view_matrix);
 }
 
+void LightEngine::Camera::update_view_matrix() {}
 
 LightEngine::FPSCamera::FPSCamera(std::shared_ptr<Core> core_ptr) : Camera(core_ptr) {
 	horizontal_angle_ = 0;
@@ -106,18 +87,17 @@ LightEngine::FPSCamera::FPSCamera(std::shared_ptr<Core> core_ptr) : Camera(core_
 	position_[2] = 0;
 }
 
-void LightEngine::FPSCamera::update_preprocess() {
-	Camera::update_preprocess();
+void LightEngine::FPSCamera::update_view_matrix() {
 
-	transform_matrices_.camera_matrix = DirectX::XMMatrixSet(
+	transform_matrices_.view_matrix = DirectX::XMMatrixSet(
 		1, 0, 0, 0,
 		0, 1, 0, 0,
 		0, 0, 1, 0,
 		position_[0], position_[1], position_[2], 1
 	);
 
-	transform_matrices_.camera_matrix *= DirectX::XMMatrixRotationY(vertical_angle_ * M_PI/180.0f);
-	transform_matrices_.camera_matrix *= DirectX::XMMatrixRotationX(horizontal_angle_ * M_PI/180.0f);
+	transform_matrices_.view_matrix *= DirectX::XMMatrixRotationY(vertical_angle_ * M_PI/180.0f);
+	transform_matrices_.view_matrix *= DirectX::XMMatrixRotationX(horizontal_angle_ * M_PI/180.0f);
 }
 
 void LightEngine::FPSCamera::modify_horizontal_angle(float delta_angle) {
@@ -142,7 +122,15 @@ void LightEngine::FPSCamera::move_y(float delta) {
 	position_[1] += delta;
 }
 
+void LightEngine::FPSCamera::reset() {
+	horizontal_angle_ = 0;
+	vertical_angle_ = 0;
+	position_[0] = 0;
+	position_[1] = 0;
+	position_[2] = 0;
 
+	update_view_matrix();
+}
 
 LightEngine::ArcballCamera::ArcballCamera(std::shared_ptr<Core> core_ptr, float radius) : Camera(core_ptr) {
 	horizontal_angle_= 0;
@@ -152,30 +140,32 @@ LightEngine::ArcballCamera::ArcballCamera(std::shared_ptr<Core> core_ptr, float 
 	center_[1] = 0.0;
 	center_[2] = 0.0;
 
+	update_view_matrix();
 	update();
 }
 
-void LightEngine::ArcballCamera::update_preprocess() {
-	
-	Camera::update_preprocess();
+void LightEngine::ArcballCamera::update_view_matrix() {
 
-	transform_matrices_.camera_matrix = DirectX::XMMatrixSet(
+	transform_matrices_.view_matrix = DirectX::XMMatrixSet(
 	1.0, 0.0, 0.0, 0.0,
 	0.0, 1.0, 0.0, 0.0,
 	0.0, 0.0, 1.0, 0.0,
 	-center_[0], -center_[1], -center_[2], 1.0);
 	
-	transform_matrices_.camera_matrix = DirectX::XMMatrixMultiply(transform_matrices_.camera_matrix, DirectX::XMMatrixRotationY(vertical_angle_* M_PI / 180.0f));
-	transform_matrices_.camera_matrix = DirectX::XMMatrixMultiply(transform_matrices_.camera_matrix, DirectX::XMMatrixRotationX(horizontal_angle_* M_PI / 180.0f));
+	transform_matrices_.view_matrix = DirectX::XMMatrixMultiply(
+		transform_matrices_.view_matrix, 
+		DirectX::XMMatrixRotationY(vertical_angle_* M_PI / 180.0f));
+
+	transform_matrices_.view_matrix = DirectX::XMMatrixMultiply(
+		transform_matrices_.view_matrix,
+		DirectX::XMMatrixRotationX(horizontal_angle_* M_PI / 180.0f));
 	
-	transform_matrices_.camera_matrix += DirectX::XMMatrixSet(
+	transform_matrices_.view_matrix += DirectX::XMMatrixSet(
 	0.0, 0.0, 0.0, 0.0, 
 	0.0, 0.0, 0.0, 0.0,
 	0.0, 0.0, 0.0, 0.0,
 	0, 0, radius_, 0.0);
 
-
-	
 }
 
 void LightEngine::ArcballCamera::modify_horizontal_angle(float delta_angle) {
@@ -213,5 +203,7 @@ void LightEngine::ArcballCamera::reset() {
 	center_[0] = 0.0;
 	center_[1] = 0.0;
 	center_[2] = 0.0;
+
+	update_view_matrix();
 }
 

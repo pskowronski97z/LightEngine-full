@@ -122,8 +122,13 @@ int main(int argc, const char **argv) {
 
 		direct_light.update();
 		
+		arcball_camera.modify_center(0,7.0f,0);
+		arcball_camera.modify_horizontal_angle(-30.0f);
+		arcball_camera.modify_vertical_angle(30.0f);
+		arcball_camera.update_view_matrix();
 		arcball_camera.update();
-		arcball_camera.set_active(0);
+		
+		arcball_camera.bind(0);
 
 		while (WM_QUIT != msg.message) {
 			
@@ -215,7 +220,7 @@ int main(int argc, const char **argv) {
 
 					if (ImGui::RadioButton("FPS", &camera, 0)) {
 						std::cout << "FPS camera selected" << std::endl;
-						fps_camera.set_active(0);
+						fps_camera.bind(0);
 						update_camera = true;
 					}
 
@@ -223,19 +228,21 @@ int main(int argc, const char **argv) {
 
 					if (ImGui::RadioButton("Arcball", &camera, 1)) {
 						std::cout << "Arcball camera selected" << std::endl;
-						arcball_camera.set_active(0);
+						arcball_camera.bind(0);
 						update_camera = true;
 					}
 
 					if (camera) {
 						if (ImGui::SliderInt("FOV", &arcball_fov, 0, 180)) {
 							arcball_camera.set_fov((float)arcball_fov);
+							arcball_camera.update_projection_matrix();
 							update_camera = true;
 						}
 					}
 					else {
 						if (ImGui::SliderInt("FOV", &world_fov, 0, 180)) {
 							fps_camera.set_fov((float)world_fov);
+							fps_camera.update_projection_matrix();
 							update_camera = true;
 						}
 					}
@@ -318,17 +325,20 @@ int main(int argc, const char **argv) {
 						if (AppWindow::IO::Mouse::left_button_down()) {
 							arcball_camera.modify_vertical_angle(-cursor_x_delta * ORBITING_SENSITIVITY);
 							arcball_camera.modify_horizontal_angle(-cursor_y_delta * ORBITING_SENSITIVITY);
+							arcball_camera.update_view_matrix();
 							update_camera = true;
 						}
 
 						if (AppWindow::IO::Mouse::middle_button_down()) {
 							arcball_camera.pan_horizontal(-cursor_x_delta * PANNING_SENSITIVITY);
 							arcball_camera.pan_vertical(cursor_y_delta * PANNING_SENSITIVITY);
+							arcball_camera.update_view_matrix();
 							update_camera = true;
 						}
 
 						if (wheel_d) {
 							arcball_camera.modify_radius(-wheel_d * ZOOM_SENSITIVITY);
+							arcball_camera.update_view_matrix();
 							update_camera = true;
 						}
 					} else {
@@ -336,36 +346,43 @@ int main(int argc, const char **argv) {
 						if (AppWindow::IO::Mouse::left_button_down()) {
 							fps_camera.modify_vertical_angle(-cursor_x_delta * FPS_SENSITIVITY);
 							fps_camera.modify_horizontal_angle(-cursor_y_delta * FPS_SENSITIVITY);
+							fps_camera.update_view_matrix();
 							update_camera = true;
 						}
 
 						if (AppWindow::IO::Keyboard::key_down(AppWindow::IO::Key::S)) {
 							fps_camera.move_relative_z(1.0);
+							fps_camera.update_view_matrix();
 							update_camera = true;
 						}
 					
 						if (AppWindow::IO::Keyboard::key_down(AppWindow::IO::Key::W)) {
 							fps_camera.move_relative_z(-1.0);
+							fps_camera.update_view_matrix();
 							update_camera = true;
 						}
 
 						if (AppWindow::IO::Keyboard::key_down(AppWindow::IO::Key::A)) {
 							fps_camera.move_relative_x(1.0);
+							fps_camera.update_view_matrix();
 							update_camera = true;
 						}
 					
 						if (AppWindow::IO::Keyboard::key_down(AppWindow::IO::Key::D)) {
 							fps_camera.move_relative_x(-1.0);
+							fps_camera.update_view_matrix();
 							update_camera = true;
 						}
 
 						if (AppWindow::IO::Keyboard::key_down(AppWindow::IO::Key::Q)) {
 							fps_camera.move_y(1.0);
+							fps_camera.update_view_matrix();
 							update_camera = true;
 						}
 					
 						if (AppWindow::IO::Keyboard::key_down(AppWindow::IO::Key::E)) {
 							fps_camera.move_y(-1.0);
+							fps_camera.update_view_matrix();
 							update_camera = true;
 						}
 					}				
@@ -398,8 +415,11 @@ int main(int argc, const char **argv) {
 					int vp_height = window.get_height() + vp_const_height_offset;
 
 					core->viewport_setup(vp_tl_x,vp_tl_y,vp_width, vp_height);
-					arcball_camera.set_scaling(vp_width, vp_height);
-					fps_camera.set_scaling(vp_width, vp_height);
+					arcball_camera.set_aspect_ratio((float)vp_width/(float)vp_height);
+					arcball_camera.update_projection_matrix();
+					fps_camera.set_aspect_ratio((float)vp_width/(float)vp_height);
+					fps_camera.update_projection_matrix();
+
 					arcball_camera.update();
 					fps_camera.update();
 					update_viewport = false;
