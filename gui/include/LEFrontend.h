@@ -17,7 +17,7 @@ namespace LightEngineUI {
 			Window(std::string name);
 			virtual void render() = 0;
 		};
-
+		
 		class MaterialEditor : public Window {
 		private:
 			class View {
