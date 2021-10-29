@@ -13,7 +13,7 @@ LightEngine::Camera::Camera(std::shared_ptr<Core> core_ptr) : ConstantBuffer(cor
 
 	fov_ = 45.0f * M_PI / 180.0f;
 	aspect_ratio_ = 16.0f / 9.0f;
-	near_z_ = 10.0f;
+	near_z_ = 20.0f;
 	far_z_ = 100.0f;
 	
 	update_projection_matrix();
@@ -145,7 +145,7 @@ LightEngine::ArcballCamera::ArcballCamera(std::shared_ptr<Core> core_ptr, float 
 }
 
 void LightEngine::ArcballCamera::update_view_matrix() {
-
+	
 	transform_matrices_.view_matrix = DirectX::XMMatrixSet(
 	1.0, 0.0, 0.0, 0.0,
 	0.0, 1.0, 0.0, 0.0,
@@ -165,7 +165,7 @@ void LightEngine::ArcballCamera::update_view_matrix() {
 	0.0, 0.0, 0.0, 0.0,
 	0.0, 0.0, 0.0, 0.0,
 	0, 0, radius_, 0.0);
-
+	
 }
 
 void LightEngine::ArcballCamera::modify_horizontal_angle(float delta_angle) {

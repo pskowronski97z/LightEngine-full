@@ -38,8 +38,6 @@ int main(int argc, const char **argv) {
 
 		auto core = std::make_shared<LightEngine::Core>(window.get_handle(), window.get_width(), window.get_height());
 
-		core->clear_back_buffer(color);
-
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
 		ImGuiIO &io = ImGui::GetIO();
@@ -57,23 +55,33 @@ int main(int argc, const char **argv) {
 		std::wstring shader_directory(COMPILED_SHADERS_DIR);
 
 		LightEngine::VertexShader vs(core, shader_directory + L"CameraVS.cso");
+		LightEngine::VertexShader hud_vs(core, shader_directory + L"ViewportHUD_VS.cso");
+		LightEngine::VertexShader shadow_mapping_vs(core, shader_directory + L"ShadowMappingVS.cso");
+
 		LightEngine::PixelShader blinn_ps(core, shader_directory + L"BlinnPS.cso");
 		LightEngine::PixelShader phong_ps(core, shader_directory + L"PhongPS.cso");
 		LightEngine::PixelShader gouraud_ps(core, shader_directory + L"GouraudPS.cso");
-		LightEngine::PixelShader pbr_ps(core, shader_directory + L"PBRShader.cso");
-		LightEngine::VertexShader hud_vs(core, shader_directory + L"ViewportHUD_VS.cso");
+		LightEngine::PixelShader pbr_ps(core, shader_directory + L"PBRShader.cso");	
 		LightEngine::PixelShader hud_ps(core, shader_directory + L"ViewportHUD_PS.cso");
+		LightEngine::PixelShader shadow_mapping_ps(core, shader_directory + L"ShadowMappingPS.cso");
+
+		
 
 		std::shared_ptr<LightEngine::PixelShader> blinn_ps_ptr = std::make_shared<LightEngine::PixelShader>(blinn_ps);
 		std::shared_ptr<LightEngine::PixelShader> phong_ps_ptr = std::make_shared<LightEngine::PixelShader>(phong_ps);
 		std::shared_ptr<LightEngine::PixelShader> gouraud_ps_ptr = std::make_shared<LightEngine::PixelShader>(gouraud_ps);
 		std::shared_ptr<LightEngine::PixelShader> pbr_ps_ptr = std::make_shared<LightEngine::PixelShader>(pbr_ps);
 
+		
+
+
 		LightEngine::FPSCamera fps_camera(core);
 		LightEngine::ArcballCamera arcball_camera(core, 50.0);
+		LightEngine::ArcballCamera light_camera(core, 50.0);
+
 		LightEngine::LightSource point_light(core, 1.0);
 		LightEngine::LightSource direct_light(core, 0.0);
-		LightEngine::DEBUG_VSTransform transform(core);
+	
 		LightEngine::Materials::BasicMaterial default_material(core, "Default00");
 		LightEngine::Materials::PBRMaterial pbr_material(core, "PBR_Metallic_Roughness");
 		LightEngine::Sampler sampler_nearest(core, LightEngine::Sampler::Filtering::NEAREST);
@@ -129,6 +137,19 @@ int main(int argc, const char **argv) {
 		arcball_camera.update();
 		
 		arcball_camera.bind(0);
+
+		//light_camera.modify_center(0,7.0f,0);
+		light_camera.modify_horizontal_angle(-30.0f);
+		light_camera.modify_vertical_angle(-30.0f);
+		//light_camera.set_fov(2);
+		light_camera.update_view_matrix();
+		light_camera.update();
+		
+		light_camera.bind(4);
+
+		//bind light-perspective camera
+
+		
 
 		while (WM_QUIT != msg.message) {
 			
@@ -417,24 +438,46 @@ int main(int argc, const char **argv) {
 					core->viewport_setup(vp_tl_x,vp_tl_y,vp_width, vp_height);
 					arcball_camera.set_aspect_ratio((float)vp_width/(float)vp_height);
 					arcball_camera.update_projection_matrix();
+					light_camera.set_aspect_ratio((float)vp_width/(float)vp_height);
+					light_camera.update_projection_matrix();
 					fps_camera.set_aspect_ratio((float)vp_width/(float)vp_height);
 					fps_camera.update_projection_matrix();
 
 					arcball_camera.update();
 					fps_camera.update();
+					light_camera.update();
 					update_viewport = false;
 				}
 
-				core->clear_back_buffer(color);
+				core->clear_frame_buffer(color);
 
 				//default_ptr->bind();
-				pbr_ptr->bind();
-
+				
 				for (int i = 0; i < scene.size(); i++) {
+					
+					
+					shadow_mapping_vs.bind();
+					shadow_mapping_ps.bind();
+							
 					scene[i].bind_topology();
 					scene[i].bind_vertex_buffer();
+
+					core->render_to_frame_buffer(false);	
+					core->viewport_setup(0,0,256,256);
+					
 					scene[i].draw(0);
+
+					pbr_ptr->bind();
+					core->render_to_frame_buffer(true);		
+
+					core->viewport_setup(vp_tl_x, vp_tl_y, 1584 + vp_const_width_offset, 861 + vp_const_height_offset);
+					scene[i].draw(0);
+
+					core->clear_depth_stencil_view();
+					core->clear_shadow_map_buffer();
 				}
+
+				
 
 				hud_vs.bind();
 				hud_ps.bind();

@@ -27,12 +27,6 @@ cbuffer MATERIAL : register(b3) {
     float4 ambient;
 };
 
-// ----------------- DEBUG ---------------------
-cbuffer TRANSFORM : register(b4) {
-    matrix rotate_x_;
-    matrix rotate_y_;
-}
-// ---------------------------------------------
 
 struct VS_INPUT {
     float3 position : VT3_POSITION; // Dane wejœciowe o formacie zadanym w deskryptorze D3D11_INPUT_ELEMENT_DESC

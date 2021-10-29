@@ -49,6 +49,11 @@ cbuffer MATERIAL : register(b3) {
     float4 ambient;
 };
 
+cbuffer LIGHT_CAMERA : register(b4) {
+    matrix light_camera_matrix_;
+    matrix light_projection_matrix_;
+}
+
 float3 get_mapped_normal(PS_INPUT pixel) {
     
     float4 normal_sample = NORMAL_MAP.Sample(DEFAULT_SAMPLER, float2(pixel.uvw[0], pixel.uvw[1]));

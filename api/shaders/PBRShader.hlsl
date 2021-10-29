@@ -49,6 +49,10 @@ Texture2D ROUGHNESS_MAP : register(t1);
 Texture2D METALNESS_MAP : register(t2);
 Texture2D NORMAL_MAP : register(t3);
 Texture2D AO_MAP : register(t4);
+Texture2D SHADOW_MAP : register(t5);
+
+
+
 SamplerState DEFAULT_SAMPLER : register(s0);
 
 static const float PI = 3.14159265f;
@@ -147,10 +151,10 @@ float4 main(PS_INPUT input) : SV_TARGET {
     float used_metalness = 0.0;
     float3 used_ao = 1.0;
     
-    if(use_albedo_map)
-        input.color = ALBEDO_MAP.Sample(DEFAULT_SAMPLER, float2(input.uvw[0], input.uvw[1]));
-    else
-        input.color = albedo;
+    //if(use_albedo_map)
+        input.color = SHADOW_MAP.Sample(DEFAULT_SAMPLER, float2(input.uvw[0], input.uvw[1]));
+    //else
+    //    input.color = albedo;
     
     if (use_roughness_map)
         used_roughness = ROUGHNESS_MAP.Sample(DEFAULT_SAMPLER, float2(input.uvw[0], input.uvw[1]));
