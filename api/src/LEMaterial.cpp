@@ -77,7 +77,7 @@ void LightEngine::Materials::BasicMaterial::bind() const {
 	bind_vs_buffer(3);
 }
 
-void LightEngine::Materials::BasicMaterial::set_diffuse_map(std::shared_ptr<Texture> diffuse_map_ptr) { 
+void LightEngine::Materials::BasicMaterial::set_diffuse_map(std::shared_ptr<StaticTexture> diffuse_map_ptr) { 
 	diffuse_map_ptr_ = diffuse_map_ptr; 
 
 	if(diffuse_map_ptr_ != nullptr) {
@@ -91,7 +91,7 @@ void LightEngine::Materials::BasicMaterial::set_diffuse_map(std::shared_ptr<Text
 
 }
 
-void LightEngine::Materials::BasicMaterial::set_normal_map(std::shared_ptr<Texture> normal_map_ptr) { 
+void LightEngine::Materials::BasicMaterial::set_normal_map(std::shared_ptr<StaticTexture> normal_map_ptr) { 
 	normal_map_ptr_ = normal_map_ptr; 
 
 	if(normal_map_ptr_ != nullptr) {
@@ -197,7 +197,7 @@ void LightEngine::Materials::PBRMaterial::set_roughness(float roughness) { param
 
 void LightEngine::Materials::PBRMaterial::set_metalness(float metalness) { parameters.metalness_ = metalness; }
 
-void LightEngine::Materials::PBRMaterial::set_albedo_map(std::shared_ptr<Texture> albedo_map_ptr) { 
+void LightEngine::Materials::PBRMaterial::set_albedo_map(std::shared_ptr<StaticTexture> albedo_map_ptr) { 
 	albedo_map_ptr_ = albedo_map_ptr;
 
 	if(albedo_map_ptr_ != nullptr) {
@@ -210,7 +210,7 @@ void LightEngine::Materials::PBRMaterial::set_albedo_map(std::shared_ptr<Texture
 	}		
 }
 
-void LightEngine::Materials::PBRMaterial::set_roughness_map(std::shared_ptr<Texture> roughness_map_ptr) {
+void LightEngine::Materials::PBRMaterial::set_roughness_map(std::shared_ptr<StaticTexture> roughness_map_ptr) {
 	roughness_map_ptr_ = roughness_map_ptr;
 
 	if(roughness_map_ptr_ != nullptr) {
@@ -223,7 +223,7 @@ void LightEngine::Materials::PBRMaterial::set_roughness_map(std::shared_ptr<Text
 	}	
 }
 
-void LightEngine::Materials::PBRMaterial::set_metalness_map(std::shared_ptr<Texture> metalness_map_ptr) { 
+void LightEngine::Materials::PBRMaterial::set_metalness_map(std::shared_ptr<StaticTexture> metalness_map_ptr) { 
 	metalness_map_ptr_ = metalness_map_ptr; 
 
 	if(metalness_map_ptr_ != nullptr) {
@@ -236,7 +236,7 @@ void LightEngine::Materials::PBRMaterial::set_metalness_map(std::shared_ptr<Text
 	}
 }
 
-void LightEngine::Materials::PBRMaterial::set_normal_map(std::shared_ptr<Texture> normal_map_ptr) { 
+void LightEngine::Materials::PBRMaterial::set_normal_map(std::shared_ptr<StaticTexture> normal_map_ptr) { 
 	normal_map_ptr_ = normal_map_ptr; 
 
 	if(normal_map_ptr_ != nullptr) {
@@ -249,7 +249,7 @@ void LightEngine::Materials::PBRMaterial::set_normal_map(std::shared_ptr<Texture
 	}
 }
 
-void LightEngine::Materials::PBRMaterial::set_ao_map(std::shared_ptr<Texture> ao_map_ptr) { 
+void LightEngine::Materials::PBRMaterial::set_ao_map(std::shared_ptr<StaticTexture> ao_map_ptr) { 
 	ao_map_ptr_ = ao_map_ptr; 
 
 	if(ao_map_ptr_ != nullptr) {

@@ -1,95 +1,10 @@
 #pragma comment(lib,"d3d11")
 #pragma comment(lib,"D3Dcompiler")
 #include <iostream>
-#include <LECore.h>
+#include <LETexture.h>
 #include <LEException.h>
 #include <d3dcompiler.h>
 
-constexpr auto shadow_map_res_width = 256;
-constexpr auto shadow_map_res_height = 256;
-
-/*
-void LightEngine::Core::depth_stencil_view_init(short width, short height) {
-
-	// Z-Buffer setup
-
-	// Depth texture resource
-
-	D3D11_TEXTURE2D_DESC depth_texture_desc = {};
-
-	depth_texture_desc.Width = width;
-	depth_texture_desc.Height = height;
-	depth_texture_desc.MipLevels = 1u;
-	depth_texture_desc.ArraySize = 1u;
-	depth_texture_desc.Format = DXGI_FORMAT_D32_FLOAT;
-	depth_texture_desc.SampleDesc.Count = 1u;
-	depth_texture_desc.SampleDesc.Quality = 0u;
-	depth_texture_desc.Usage = D3D11_USAGE_DEFAULT;
-	depth_texture_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-
-	Microsoft::WRL::ComPtr<ID3D11Texture2D> depth_texture;
-
-	call_result_ = device_ptr_->CreateTexture2D(&depth_texture_desc, NULL, &depth_texture);
-
-	if (FAILED(call_result_))
-		throw LECoreException("<D3D11 ERROR> <Depth texture creation failed> ", "LECore.cpp", __LINE__, call_result_);
-
-	// Depth view
-
-	D3D11_DEPTH_STENCIL_VIEW_DESC view_desc = {};
-
-	view_desc.Format = DXGI_FORMAT_D32_FLOAT;
-	view_desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-	view_desc.Texture2D.MipSlice = 0u;
-
-	call_result_ = device_ptr_->CreateDepthStencilView(depth_texture.Get(), &view_desc, &frame_buffer_dsv_ptr_);
-
-
-	if (FAILED(call_result_))
-		throw LECoreException("<D3D11 ERROR> <Stencil view creation failed> ", "LECore.cpp", __LINE__, call_result_);
-}
-*/
-void LightEngine::Core::shadow_map_rtv_init(short width, short height) {
-
-	D3D11_TEXTURE2D_DESC shadow_map_texture_desc = {};
-
-	shadow_map_texture_desc.Width = width;
-	shadow_map_texture_desc.Height = height;
-	shadow_map_texture_desc.MipLevels = 1u;
-	shadow_map_texture_desc.ArraySize = 1u;
-	shadow_map_texture_desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-	shadow_map_texture_desc.SampleDesc.Count = 1u;
-	shadow_map_texture_desc.SampleDesc.Quality = 0u;
-	shadow_map_texture_desc.Usage = D3D11_USAGE_DEFAULT;
-	shadow_map_texture_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
-	shadow_map_texture_desc.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
-
-	Microsoft::WRL::ComPtr<ID3D11Texture2D> shadow_map_texture;
-
-	call_result_ = device_ptr_->CreateTexture2D(&shadow_map_texture_desc, NULL, &shadow_map_texture);
-
-	if (FAILED(call_result_))
-		throw LECoreException("<D3D11 ERROR> <Shadow map texture creation failed> ", "LECore.cpp", __LINE__, call_result_);
-
-
-	call_result_ = device_ptr_->CreateRenderTargetView(shadow_map_texture.Get(), nullptr, shadow_map_rtv_ptr_.GetAddressOf());
-
-	if (FAILED(call_result_))
-		throw LECoreException("<D3D11 ERROR> <Shadow map render target creation failed> ", "LECore.cpp", __LINE__, call_result_);
-
-
-	D3D11_SHADER_RESOURCE_VIEW_DESC srvd = {};
-	srvd.Format = shadow_map_texture_desc.Format;
-	srvd.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-	srvd.Texture2D.MostDetailedMip = 0;
-	srvd.Texture2D.MipLevels = -1;
-
-	call_result_ = device_ptr_->CreateShaderResourceView(shadow_map_texture.Get(), &srvd, &shadow_map_srv_ptr_);
-	if (FAILED(call_result_))
-		throw LECoreException("<D3D11 ERROR> <Shader resource view creation failed>", "LETexture.cpp", __LINE__ - 2, call_result_);
-
-	context_ptr_->GenerateMips(shadow_map_srv_ptr_.Get());
-}
 
 void LightEngine::Core::update_depth_stencil_view(short width, short height, ID3D11DepthStencilView **dsv_pptr) {
 
@@ -122,8 +37,6 @@ void LightEngine::Core::update_depth_stencil_view(short width, short height, ID3
 
 	if (FAILED(call_result_))
 		throw LECoreException("<D3D11 ERROR> <Stencil view creation failed> ", "LECore.cpp", __LINE__, call_result_);
-
-
 
 }
 
@@ -191,8 +104,8 @@ LightEngine::Core::Core(HWND window_handle_, int viewport_width, int viewport_he
 
 	update_depth_stencil_view(viewport_width, viewport_height, &frame_buffer_dsv_ptr_);
 	
-	shadow_map_rtv_init(shadow_map_res_width, shadow_map_res_height);
-	update_depth_stencil_view(shadow_map_res_width, shadow_map_res_height, &shadow_map_dsv_ptr_);
+	//shadow_map_rtv_init(shadow_map_res_width, shadow_map_res_height);
+	//update_depth_stencil_view(shadow_map_res_width, shadow_map_res_height, &shadow_map_dsv_ptr_);
 	
 
 	context_ptr_->OMSetRenderTargets(1u, frame_buffer_rtv_ptr_.GetAddressOf(), frame_buffer_dsv_ptr_.Get());
@@ -326,50 +239,48 @@ void LightEngine::Core::update_frame_buffer(int new_width, int new_height) {
 	*/
 }
 
-void LightEngine::Core::render_to_frame_buffer(bool flag) {
-	rendering_to_frame_buffer_ = flag;
+void LightEngine::Core::render_to_frame_buffer() {
+	rendering_to_frame_buffer_ = true;
+	context_ptr_->OMSetRenderTargets(1u, frame_buffer_rtv_ptr_.GetAddressOf(), frame_buffer_dsv_ptr_.Get());
+	context_ptr_->RSSetViewports(1u, &viewport_);
+}
 
-	static ID3D11ShaderResourceView* const null_srv = { 0 };
+void LightEngine::Core::render_to_texture(RenderableTexture& renderable_texture) {
+	rendering_to_frame_buffer_ = false;
 
-	if (rendering_to_frame_buffer_) {
-		context_ptr_->OMSetRenderTargets(1u, frame_buffer_rtv_ptr_.GetAddressOf(), frame_buffer_dsv_ptr_.Get());
-		context_ptr_->PSSetShaderResources(5, 1, shadow_map_srv_ptr_.GetAddressOf());
-	}
-	else {
-		context_ptr_->PSSetShaderResources(5, 1, &null_srv);
-		context_ptr_->OMSetRenderTargets(1u, shadow_map_rtv_ptr_.GetAddressOf(), shadow_map_dsv_ptr_.Get());
-	}
+	static D3D11_VIEWPORT texture_rendering_viewport = {0};
+	texture_rendering_viewport.Width = renderable_texture.get_width();
+	texture_rendering_viewport.Height = renderable_texture.get_height();
+	texture_rendering_viewport.MinDepth = 0.0f;
+	texture_rendering_viewport.MaxDepth = 1.0f;
+	texture_rendering_viewport.TopLeftX = 0;
+	texture_rendering_viewport.TopLeftY = 0;
+
+	context_ptr_->RSSetViewports(1, &texture_rendering_viewport);
+	context_ptr_->OMSetRenderTargets(1u, renderable_texture.get_rtv_ptr().GetAddressOf(), renderable_texture.get_dsv_ptr().Get());
 }
 
 void LightEngine::Core::viewport_setup(int x, int y, int width, int height) {
-	D3D11_VIEWPORT viewport;
-	viewport.Width = width;
-	viewport.Height = height;
-	viewport.MinDepth = 0.0f;
-	viewport.MaxDepth = 1.0f;
-	viewport.TopLeftX = x;
-	viewport.TopLeftY = y;
+	
+	viewport_.Width = width;
+	viewport_.Height = height;
+	viewport_.MinDepth = 0.0f;
+	viewport_.MaxDepth = 1.0f;
+	viewport_.TopLeftX = x;
+	viewport_.TopLeftY = y;
 
-	context_ptr_->RSSetViewports(1, &viewport);
-}
-
-void LightEngine::Core::clear_depth_stencil_view() const {
-	context_ptr_->ClearDepthStencilView(frame_buffer_dsv_ptr_.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0u);
-	context_ptr_->ClearDepthStencilView(shadow_map_dsv_ptr_.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0u);
-}
-
-void LightEngine::Core::clear_shadow_map_buffer() const {
-	static const float color[]{ 1.0, 0.0, 0.0 };
-	context_ptr_->ClearRenderTargetView(shadow_map_rtv_ptr_.Get(), color);
+	context_ptr_->RSSetViewports(1, &viewport_);
 }
 
 void LightEngine::Core::clear_frame_buffer(float clear_color[4]) const {
 	context_ptr_->ClearRenderTargetView(frame_buffer_rtv_ptr_.Get(), clear_color);
+	context_ptr_->ClearDepthStencilView(frame_buffer_dsv_ptr_.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0u);
 }
 
 void LightEngine::Core::clear_frame_buffer(float r, float g, float b, float a) const {
 	static float color[] = { r, g, b, a };
 	context_ptr_->ClearRenderTargetView(frame_buffer_rtv_ptr_.Get(), color);
+	context_ptr_->ClearDepthStencilView(frame_buffer_dsv_ptr_.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0u);
 }
 
 Microsoft::WRL::ComPtr<ID3D11Device> LightEngine::Core::get_device_ptr() { return device_ptr_; }

@@ -29,13 +29,13 @@ namespace LightEngine {
 
 		class __declspec(dllexport) BasicMaterial : public Material<DefaultParameters> {
 		private:
-			std::shared_ptr<Texture> diffuse_map_ptr_ = nullptr;
-			std::shared_ptr<Texture> normal_map_ptr_ = nullptr;
+			std::shared_ptr<StaticTexture> diffuse_map_ptr_ = nullptr;
+			std::shared_ptr<StaticTexture> normal_map_ptr_ = nullptr;
 		public:
 			BasicMaterial(std::shared_ptr<Core> core_ptr, std::string name);
 			void bind() const override;
-			void set_diffuse_map(std::shared_ptr<Texture> diffuse_map_ptr);
-			void set_normal_map(std::shared_ptr<Texture> normal_map_ptr);
+			void set_diffuse_map(std::shared_ptr<StaticTexture> diffuse_map_ptr);
+			void set_normal_map(std::shared_ptr<StaticTexture> normal_map_ptr);
 			void set_quadratic_att(float value);
 			void set_linear_att(float value);
 			void set_constant_att(float value);
@@ -51,11 +51,11 @@ namespace LightEngine {
 
 		class __declspec(dllexport) PBRMaterial : public Material<PBRParameters> {
 		private:
-			std::shared_ptr<Texture> albedo_map_ptr_ = nullptr;
-			std::shared_ptr<Texture> roughness_map_ptr_ = nullptr;
-			std::shared_ptr<Texture> metalness_map_ptr_ = nullptr;
-			std::shared_ptr<Texture> normal_map_ptr_ = nullptr;
-			std::shared_ptr<Texture> ao_map_ptr_ = nullptr;
+			std::shared_ptr<StaticTexture> albedo_map_ptr_ = nullptr;
+			std::shared_ptr<StaticTexture> roughness_map_ptr_ = nullptr;
+			std::shared_ptr<StaticTexture> metalness_map_ptr_ = nullptr;
+			std::shared_ptr<StaticTexture> normal_map_ptr_ = nullptr;
+			std::shared_ptr<StaticTexture> ao_map_ptr_ = nullptr;
 
 		public:
 			PBRMaterial(std::shared_ptr<Core> core_ptr, std::string name);
@@ -63,11 +63,11 @@ namespace LightEngine {
 			void set_albedo(float albedo[3]);
 			void set_roughness(float roughness);
 			void set_metalness(float metalness);
-			void set_albedo_map(std::shared_ptr<Texture> albedo_map_ptr);
-			void set_roughness_map(std::shared_ptr<Texture> roughness_map_ptr);
-			void set_metalness_map(std::shared_ptr<Texture> metalness_map_ptr);
-			void set_normal_map(std::shared_ptr<Texture> normal_map_ptr);
-			void set_ao_map(std::shared_ptr<Texture> ao_map_ptr);
+			void set_albedo_map(std::shared_ptr<StaticTexture> albedo_map_ptr);
+			void set_roughness_map(std::shared_ptr<StaticTexture> roughness_map_ptr);
+			void set_metalness_map(std::shared_ptr<StaticTexture> metalness_map_ptr);
+			void set_normal_map(std::shared_ptr<StaticTexture> normal_map_ptr);
+			void set_ao_map(std::shared_ptr<StaticTexture> ao_map_ptr);
 			std::vector<std::string> get_maps_names() const override;
 		};
 	}

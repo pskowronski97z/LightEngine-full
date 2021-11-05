@@ -6,7 +6,7 @@ template<class T>
 LightEngineUI::Backend::BrowserModel<T>::BrowserModel() : selected_item_(0){}
 
 template
-LightEngineUI::Backend::BrowserModel<LightEngine::Texture>::BrowserModel();
+LightEngineUI::Backend::BrowserModel<LightEngine::StaticTexture>::BrowserModel();
 
 template
 LightEngineUI::Backend::BrowserModel<LightEngine::Materials::BasicMaterial>::BrowserModel();
@@ -19,7 +19,7 @@ void LightEngineUI::Backend::BrowserModel<T>::load(T &new_element, std::string n
 }
 
 template
-void LightEngineUI::Backend::BrowserModel<LightEngine::Texture>::load(LightEngine::Texture &new_element, std::string new_element_name);
+void LightEngineUI::Backend::BrowserModel<LightEngine::StaticTexture>::load(LightEngine::StaticTexture &new_element, std::string new_element_name);
 
 template<class T>
 bool LightEngineUI::Backend::BrowserModel<T>::remove(int index) {
@@ -32,7 +32,7 @@ bool LightEngineUI::Backend::BrowserModel<T>::remove(int index) {
 }
 
 template
-bool LightEngineUI::Backend::BrowserModel<LightEngine::Texture>::remove(int index);
+bool LightEngineUI::Backend::BrowserModel<LightEngine::StaticTexture>::remove(int index);
 
 
 template<class T>
@@ -46,7 +46,7 @@ std::vector<const char*> LightEngineUI::Backend::BrowserModel<T>::get_names() co
 }
 
 template
-std::vector<const char*> LightEngineUI::Backend::BrowserModel<LightEngine::Texture>::get_names() const;
+std::vector<const char*> LightEngineUI::Backend::BrowserModel<LightEngine::StaticTexture>::get_names() const;
 
 template<class T>
 std::shared_ptr<T> LightEngineUI::Backend::BrowserModel<T>::get_selected_item() const {
@@ -57,7 +57,7 @@ std::shared_ptr<T> LightEngineUI::Backend::BrowserModel<T>::get_selected_item() 
 }
 
 template
-std::shared_ptr<LightEngine::Texture> LightEngineUI::Backend::BrowserModel<LightEngine::Texture>::get_selected_item() const;
+std::shared_ptr<LightEngine::StaticTexture> LightEngineUI::Backend::BrowserModel<LightEngine::StaticTexture>::get_selected_item() const;
 
 template<class T>
 bool LightEngineUI::Backend::BrowserModel<T>::select_item(int index) {
@@ -69,5 +69,5 @@ bool LightEngineUI::Backend::BrowserModel<T>::select_item(int index) {
 }
 
 template
-bool LightEngineUI::Backend::BrowserModel<LightEngine::Texture>::select_item(int index);
+bool LightEngineUI::Backend::BrowserModel<LightEngine::StaticTexture>::select_item(int index);
 

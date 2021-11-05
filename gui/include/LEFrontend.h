@@ -22,11 +22,11 @@ namespace LightEngineUI {
 		private:
 			class View {
 			protected:
-				std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::Texture>> texture_browser_model_ptr_;
+				std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::StaticTexture>> texture_browser_model_ptr_;
 				std::vector<std::string> button_labels_;
 				std::string material_name_;
 			public:
-				View(std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::Texture>> &texture_browser_model_ptr);
+				View(std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::StaticTexture>> &texture_browser_model_ptr);
 				virtual void render(int window_width) = 0;
 			};
 
@@ -39,7 +39,7 @@ namespace LightEngineUI {
 			public:
 				BasicView(
 					std::shared_ptr<LightEngine::Materials::BasicMaterial> &material_ptr, 
-					std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::Texture>> &texture_browser_model_ptr);
+					std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::StaticTexture>> &texture_browser_model_ptr);
 				void render(int window_width) override;
 			};
 
@@ -49,14 +49,14 @@ namespace LightEngineUI {
 			public:
 				PBRView(
 					std::shared_ptr<LightEngine::Materials::PBRMaterial>& material_ptr, 
-					std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::Texture>> &texture_browser_model_ptr);
+					std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::StaticTexture>> &texture_browser_model_ptr);
 				void render(int window_width) override;
 			};
 
 			std::shared_ptr<View> view_ptr = nullptr;
-			std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::Texture>> texture_browser_model_ptr_;
+			std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::StaticTexture>> texture_browser_model_ptr_;
 		public:
-			MaterialEditor(std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::Texture>> &model_ptr);
+			MaterialEditor(std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::StaticTexture>> &model_ptr);
 			void render() override;
 			void load_material(std::shared_ptr<LightEngine::Materials::BasicMaterial> &default_material_ptr);
 			void load_material(std::shared_ptr<LightEngine::Materials::PBRMaterial> &pbr_material_ptr);
@@ -71,10 +71,10 @@ namespace LightEngineUI {
 		
 		};
 
-		class TextureBrowser : public Browser<LightEngine::Texture>, public LightEngine::CoreUser {
+		class TextureBrowser : public Browser<LightEngine::StaticTexture>, public LightEngine::CoreUser {
 		public:
 			TextureBrowser(
-				std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::Texture>> &texture_browser_model_ptr,
+				std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::StaticTexture>> &texture_browser_model_ptr,
 				std::shared_ptr<LightEngine::Core> &core_ptr);
 			void render() override;
 		};

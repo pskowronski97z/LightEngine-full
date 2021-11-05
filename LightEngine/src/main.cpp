@@ -88,15 +88,17 @@ int main(int argc, const char **argv) {
 		LightEngine::Sampler sampler_bilinear(core, LightEngine::Sampler::Filtering::BILINEAR);
 		LightEngine::Sampler sampler_trilinear(core, LightEngine::Sampler::Filtering::TRILINEAR);
 		LightEngine::Sampler sampler_anisotropic(core, LightEngine::Sampler::Filtering::ANISOTROPIC);
+		LightEngine::RenderableTexture shadow_map(core, "Shadow map", 256, 256);
 		
-		
-		LightEngineUI::Backend::BrowserModel<LightEngine::Texture> texture_browser_model;
+		LightEngineUI::Backend::BrowserModel<LightEngine::StaticTexture> texture_browser_model;
 		LightEngineUI::Backend::BrowserModel<LightEngine::Materials::BasicMaterial> bm_browser_model;
 		std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::Materials::BasicMaterial>> bm_browser_model_ptr = std::make_shared<LightEngineUI::Backend::BrowserModel<LightEngine::Materials::BasicMaterial>>(bm_browser_model);
-		std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::Texture>> tbm_ptr = std::make_shared<LightEngineUI::Backend::BrowserModel<LightEngine::Texture>>(texture_browser_model);
+		std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::StaticTexture>> tbm_ptr = std::make_shared<LightEngineUI::Backend::BrowserModel<LightEngine::StaticTexture>>(texture_browser_model);
 		LightEngineUI::Frontend::TextureBrowser texture_browser(tbm_ptr,core);
 		LightEngineUI::Frontend::MaterialEditor material_editor(tbm_ptr);
 		LightEngineUI::Frontend::BasicMaterialsBrowser bm_browser(bm_browser_model_ptr,core);
+
+
 
 		std::vector<LightEngine::Vertex3> border_vertices{
 			{{-0.99,0.99,0.0},{0.4,0.4,0.4,1.0}},
@@ -130,7 +132,7 @@ int main(int argc, const char **argv) {
 
 		direct_light.update();
 		
-		arcball_camera.modify_center(0,7.0f,0);
+		//arcball_camera.modify_center(0,7.0f,0);
 		arcball_camera.modify_horizontal_angle(-30.0f);
 		arcball_camera.modify_vertical_angle(30.0f);
 		arcball_camera.update_view_matrix();
@@ -149,6 +151,8 @@ int main(int argc, const char **argv) {
 
 		//bind light-perspective camera
 
+		int vp_width = 0;
+		int vp_height = 0;
 		
 
 		while (WM_QUIT != msg.message) {
@@ -432,8 +436,8 @@ int main(int argc, const char **argv) {
 				}
 
 				if(update_viewport){		
-					int vp_width = window.get_width() + vp_const_width_offset;
-					int vp_height = window.get_height() + vp_const_height_offset;
+					vp_width = window.get_width() + vp_const_width_offset;
+					vp_height = window.get_height() + vp_const_height_offset;
 
 					core->viewport_setup(vp_tl_x,vp_tl_y,vp_width, vp_height);
 					arcball_camera.set_aspect_ratio((float)vp_width/(float)vp_height);
@@ -450,7 +454,8 @@ int main(int argc, const char **argv) {
 				}
 
 				core->clear_frame_buffer(color);
-
+				shadow_map.clear();
+				
 				//default_ptr->bind();
 				
 				for (int i = 0; i < scene.size(); i++) {
@@ -462,22 +467,19 @@ int main(int argc, const char **argv) {
 					scene[i].bind_topology();
 					scene[i].bind_vertex_buffer();
 
-					core->render_to_frame_buffer(false);	
-					core->viewport_setup(0,0,256,256);
+					shadow_map.unbind();
+					core->render_to_texture(shadow_map);	
 					
 					scene[i].draw(0);
 
 					pbr_ptr->bind();
-					core->render_to_frame_buffer(true);		
+					
+					core->render_to_frame_buffer();		
+					shadow_map.bind(5);
 
-					core->viewport_setup(vp_tl_x, vp_tl_y, 1584 + vp_const_width_offset, 861 + vp_const_height_offset);
 					scene[i].draw(0);
-
-					core->clear_depth_stencil_view();
-					core->clear_shadow_map_buffer();
+					
 				}
-
-				
 
 				hud_vs.bind();
 				hud_ps.bind();

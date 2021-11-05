@@ -13,7 +13,7 @@ LightEngineUI::Frontend::Window::Window(std::string name) : name_(std::move(name
 }
 
 LightEngineUI::Frontend::MaterialEditor::MaterialEditor(
-	std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::Texture>> &texture_browser_model_ptr)
+	std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::StaticTexture>> &texture_browser_model_ptr)
 	: Window("Material Editor"), texture_browser_model_ptr_(texture_browser_model_ptr) {}
 
 void LightEngineUI::Frontend::MaterialEditor::render() {
@@ -36,7 +36,7 @@ void LightEngineUI::Frontend::MaterialEditor::load_material(std::shared_ptr<Ligh
 
 LightEngineUI::Frontend::MaterialEditor::BasicView::BasicView(
 	std::shared_ptr<LightEngine::Materials::BasicMaterial> &material_ptr, 
-	std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::Texture>> &texture_browser_model_ptr) 
+	std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::StaticTexture>> &texture_browser_model_ptr) 
 	: View(texture_browser_model_ptr), material_ptr_(material_ptr) {
 	
 	parameters_ = material_ptr_->get_all_parameters();
@@ -49,7 +49,7 @@ LightEngineUI::Frontend::MaterialEditor::BasicView::BasicView(
 void LightEngineUI::Frontend::MaterialEditor::BasicView::render(int window_width) {
 	static ImVec2 button_size;
 	static const ImVec2 spacing(0.0f, 5.0f);
-	static std::shared_ptr<LightEngine::Texture> texture;
+	static std::shared_ptr<LightEngine::StaticTexture> texture;
 
 	button_size.x = window_width - 80;
 	button_size.y = 20;
@@ -166,7 +166,7 @@ void LightEngineUI::Frontend::MaterialEditor::BasicView::render(int window_width
 
 LightEngineUI::Frontend::MaterialEditor::PBRView::PBRView(
 	std::shared_ptr<LightEngine::Materials::PBRMaterial>& material_ptr, 
-	std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::Texture>> &texture_browser_model_ptr) 
+	std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::StaticTexture>> &texture_browser_model_ptr) 
 	: View(texture_browser_model_ptr), material_ptr_(material_ptr) {
 
 	parameters_ = material_ptr_->get_all_parameters();
@@ -178,7 +178,7 @@ void LightEngineUI::Frontend::MaterialEditor::PBRView::render(int window_width) 
 
 	static ImVec2 button_size;
 	static const ImVec2 spacing(0.0f, 5.0f);
-	static std::shared_ptr<LightEngine::Texture> texture;
+	static std::shared_ptr<LightEngine::StaticTexture> texture;
 
 	button_size.x = window_width - 80;
 	button_size.y = 20;
@@ -299,7 +299,7 @@ void LightEngineUI::Frontend::MaterialEditor::PBRView::render(int window_width) 
 }
 
 LightEngineUI::Frontend::TextureBrowser::TextureBrowser(
-	std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::Texture>> &texture_browser_model_ptr, 
+	std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::StaticTexture>> &texture_browser_model_ptr, 
 	std::shared_ptr<LightEngine::Core> &core_ptr)
 	: Browser("Texture Browser", texture_browser_model_ptr), CoreUser(core_ptr) {
 	names_ = browser_model_ptr_->get_names();
@@ -337,7 +337,7 @@ void LightEngineUI::Frontend::TextureBrowser::render() {
 		
 		std::string path = AppWindow::open_file_dialog(image_file_filter, image_file_filter_size);
 		if (path != "") {
-			LightEngine::Texture new_texture(core_ptr_, path);
+			LightEngine::StaticTexture new_texture(core_ptr_, path);
 			browser_model_ptr_->load(new_texture, new_texture.get_name());
 			names_ = browser_model_ptr_->get_names();
 		}
@@ -358,7 +358,7 @@ void LightEngineUI::Frontend::TextureBrowser::render() {
 }
 
 LightEngineUI::Frontend::MaterialEditor::View::View(
-	std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::Texture>> &texture_browser_model_ptr) 
+	std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::StaticTexture>> &texture_browser_model_ptr) 
 	: texture_browser_model_ptr_(texture_browser_model_ptr) {}
 
 LightEngineUI::Frontend::BasicMaterialsBrowser::BasicMaterialsBrowser(
