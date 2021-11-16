@@ -115,7 +115,7 @@ LightEngine::RenderableTexture::RenderableTexture(std::shared_ptr<Core>& core_pt
 	texture_descriptor_.SampleDesc.Quality = 0u;
 	texture_descriptor_.Usage = D3D11_USAGE_DEFAULT;
 	texture_descriptor_.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
-	texture_descriptor_.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
+	//texture_descriptor_.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
 
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> texture_ptr;
 
@@ -135,13 +135,13 @@ LightEngine::RenderableTexture::RenderableTexture(std::shared_ptr<Core>& core_pt
 	srvd.Format = texture_descriptor_.Format;
 	srvd.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 	srvd.Texture2D.MostDetailedMip = 0;
-	srvd.Texture2D.MipLevels = -1;
+	srvd.Texture2D.MipLevels = 1;
 
 	call_result_ = core_ptr_->get_device_ptr()->CreateShaderResourceView(texture_ptr.Get(), &srvd, &texture_srv_ptr_);
 	if (FAILED(call_result_))
 		throw LECoreException("<D3D11 ERROR> <Shader resource view creation failed>", "LETexture.cpp", __LINE__ - 2, call_result_);
 
-	core_ptr_->get_context_ptr()->GenerateMips(texture_srv_ptr_.Get());
+	//core_ptr_->get_context_ptr()->GenerateMips(texture_srv_ptr_.Get());
 
 
 

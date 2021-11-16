@@ -27,6 +27,10 @@ cbuffer MATERIAL : register(b3) {
     float4 ambient;
 };
 
+cbuffer LIGHT_CAMERA : register(b4) {
+    matrix light_camera_matrix_;
+    matrix light_projection_matrix_;
+}
 
 struct VS_INPUT {
     float3 position : VT3_POSITION; // Dane wejœciowe o formacie zadanym w deskryptorze D3D11_INPUT_ELEMENT_DESC
@@ -46,6 +50,7 @@ struct PS_INPUT {
     float3 bitangent : VT3_BITANGENT;
     float3 world_position : VT3_POSITION;
     float3 gouraud_shading : VT3_COLOR1;
+    float4 light_space_position : VT3_COLOR2;
 };
 
 float get_attenuation(float distance) {
@@ -75,9 +80,8 @@ PS_INPUT main(VS_INPUT input) {
     //result.normal = mul(float4(input.normal, 1.0f), rotate_x_);
     // ---------------------------------------------
     
+    result.world_position = input.position;  
     result.position = mul(float4(input.position, 1.0f), camera_matrix_);
-    
-    result.world_position = result.position;  
     result.position = mul(result.position, projection_matrix_);  
     result.normal = mul(float4(input.normal, 0.0f), camera_matrix_);    
     result.tangent = mul(float4(input.tangent, 0.0f), camera_matrix_);
@@ -88,6 +92,9 @@ PS_INPUT main(VS_INPUT input) {
     result.gouraud_shading += gouraud_dir(mul(coordinates_dir, camera_matrix_), color_dir, result.normal);
     result.gouraud_shading = saturate(result.gouraud_shading);
     result.uvw = input.uvw;
+    
+    result.light_space_position = mul(float4(input.position, 1.0), light_camera_matrix_);
+    result.light_space_position = mul(result.light_space_position, light_projection_matrix_);
     
     return result;
 }

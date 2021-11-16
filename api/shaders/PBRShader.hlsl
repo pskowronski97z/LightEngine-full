@@ -7,6 +7,7 @@ struct PS_INPUT {
     float3 bitangent : VT3_BITANGENT;
     float3 world_position : VT3_POSITION;
     float3 gouraud_shading : VT3_COLOR1;
+    float4 light_space_position : VT3_COLOR2;
 };
 
 struct LIGHT_SOURCE {
@@ -43,6 +44,11 @@ cbuffer MATERIAL : register(b3) {
     bool use_normal_map;
     bool use_ao_map;
 };
+
+cbuffer LIGHT_CAMERA : register(b4) {
+    matrix light_camera_matrix_;
+    matrix light_projection_matrix_;
+}
 
 Texture2D ALBEDO_MAP : register(t0);
 Texture2D ROUGHNESS_MAP : register(t1);
@@ -133,28 +139,41 @@ float3 get_mapped_normal(PS_INPUT pixel) {
     return normalize(pixel.normal);
 }
 
+float get_shadowing_value(float4 light_space_position) {
+    
+    light_space_position /= light_space_position[3];
+    
+    float u = light_space_position[0] * 0.5 + 0.5;
+    float v = 1.0 - light_space_position[1] * 0.5 + 0.5;
+    
+    float sampled_z = SHADOW_MAP.Sample(DEFAULT_SAMPLER, float2(u, v));
+    
+    return sampled_z + 0.002 < light_space_position[2] ? 0 : 1;
+    
+}
+
 float4 main(PS_INPUT input) : SV_TARGET {
     
     LIGHT_SOURCE point_light;
     point_light.color = color_pt;
     point_light.coordinates = mul(coordinates_pt, camera_matrix_);
-    point_light.intensity = additional_pt[0];
-    
+    point_light.intensity = additional_pt[0] * get_shadowing_value(input.light_space_position);
     
     LIGHT_SOURCE direct_light;
     direct_light.color = color_dir;
     direct_light.coordinates = coordinates_dir;
-    direct_light.intensity = additional_dir[0];
+    direct_light.intensity = additional_dir[0] * get_shadowing_value(input.light_space_position);
     
+    input.world_position = mul(float4(input.world_position, 1.0), camera_matrix_);
     
     float used_roughness = 0.0;
     float used_metalness = 0.0;
     float3 used_ao = 1.0;
     
-    //if(use_albedo_map)
-        input.color = SHADOW_MAP.Sample(DEFAULT_SAMPLER, float2(input.uvw[0], input.uvw[1]));
-    //else
-    //    input.color = albedo;
+    if(use_albedo_map)
+        input.color = ALBEDO_MAP.Sample(DEFAULT_SAMPLER, float2(input.uvw[0], input.uvw[1]));
+    else
+        input.color = albedo;
     
     if (use_roughness_map)
         used_roughness = ROUGHNESS_MAP.Sample(DEFAULT_SAMPLER, float2(input.uvw[0], input.uvw[1]));
@@ -174,7 +193,7 @@ float4 main(PS_INPUT input) : SV_TARGET {
     if(use_normal_map)
         input.normal = get_mapped_normal(input);
     
-    float3 lighting = get_reflectance_dir(input, direct_light, used_roughness, used_metalness) * used_ao;
+    float3 lighting = get_reflectance_pt(input, point_light, used_roughness, used_metalness) * used_ao;
     lighting = lighting / (lighting + 1.0f); // Conversion to HDR
     lighting = pow(lighting, 0.8f); // Gamma correction
     

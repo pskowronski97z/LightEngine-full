@@ -88,7 +88,7 @@ int main(int argc, const char **argv) {
 		LightEngine::Sampler sampler_bilinear(core, LightEngine::Sampler::Filtering::BILINEAR);
 		LightEngine::Sampler sampler_trilinear(core, LightEngine::Sampler::Filtering::TRILINEAR);
 		LightEngine::Sampler sampler_anisotropic(core, LightEngine::Sampler::Filtering::ANISOTROPIC);
-		LightEngine::RenderableTexture shadow_map(core, "Shadow map", 256, 256);
+		LightEngine::RenderableTexture shadow_map(core, "Shadow map", 512, 512);
 		
 		LightEngineUI::Backend::BrowserModel<LightEngine::StaticTexture> texture_browser_model;
 		LightEngineUI::Backend::BrowserModel<LightEngine::Materials::BasicMaterial> bm_browser_model;
@@ -141,9 +141,11 @@ int main(int argc, const char **argv) {
 		arcball_camera.bind(0);
 
 		//light_camera.modify_center(0,7.0f,0);
-		light_camera.modify_horizontal_angle(-30.0f);
-		light_camera.modify_vertical_angle(-30.0f);
-		//light_camera.set_fov(2);
+		light_camera.modify_horizontal_angle(-60.0f);
+		//light_camera.modify_vertical_angle(-30.0f);
+		light_camera.set_clipping_near(30);
+		light_camera.set_clipping_far(70);
+		light_camera.set_fov(60);
 		light_camera.update_view_matrix();
 		light_camera.update();
 		
@@ -165,7 +167,7 @@ int main(int argc, const char **argv) {
 				
 				ImGui_ImplDX11_NewFrame();
 				ImGui_ImplWin32_NewFrame();
-				ImGui::NewFrame();
+				ImGui::NewFrame(); 
 				
 				ImGui::DockSpaceOverViewport(0,ImGuiDockNodeFlags_PassthruCentralNode,0);
 				
