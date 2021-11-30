@@ -76,6 +76,8 @@ int main(int argc, const char **argv) {
 
 
 		LightEngine::FPSCamera fps_camera(core);
+		fps_camera.update();
+
 		LightEngine::ArcballCamera arcball_camera(core, 50.0);
 		LightEngine::ArcballCamera light_camera(core, 50.0);
 
@@ -107,8 +109,14 @@ int main(int argc, const char **argv) {
 			{{-0.99,-0.99,0.0},{0.4,0.4,0.4,1.0}},
 			{{-0.99,0.99,0.0},{0.4,0.4,0.4,1.0}}};
 
-		LightEngine::Geometry<LightEngine::Vertex3> viewport_border(core,border_vertices,D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP,"border");
+		std::vector<LightEngine::Vertex3> shadow_map_display_vertices{
+			{{-0.99,-0.99,0.0},{0.4,0.4,0.4,-1.0},{0,1,0}},
+			{{-0.99,0.0,0.0},{0.4,0.4,0.4,-1.0},{0,0,0}},
+			{{-0.4,-0.99,0.0},{0.4,0.4,0.4,-1.0},{1,1,0}},			
+			{{-0.4,0.0,0.0},{0.4,0.4,0.4,-1.0},{1,0,0}}};
 
+		LightEngine::Geometry<LightEngine::Vertex3> viewport_border(core, border_vertices, D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP, "border");
+		LightEngine::Geometry<LightEngine::Vertex3> shadow_map_display(core, shadow_map_display_vertices, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP,"shadow_map_display");
 		
 
 		direct_light.set_position(direct_light_position);
@@ -140,12 +148,11 @@ int main(int argc, const char **argv) {
 		
 		arcball_camera.bind(0);
 
-		//light_camera.modify_center(0,7.0f,0);
-		light_camera.modify_horizontal_angle(-60.0f);
-		//light_camera.modify_vertical_angle(-30.0f);
-		light_camera.set_clipping_near(30);
-		light_camera.set_clipping_far(70);
-		light_camera.set_fov(60);
+		//light_camera.modify_center(0.0,0.0,1.0);
+		//light_camera.modify_horizontal_angle(-90.0f);
+		light_camera.set_clipping_near(lc_near_z);
+		light_camera.set_clipping_far(lc_far_z);
+		light_camera.set_fov(lc_fov);
 		light_camera.update_view_matrix();
 		light_camera.update();
 		
@@ -289,6 +296,33 @@ int main(int argc, const char **argv) {
 
 
 
+					ImGui::Begin("Light Camera");
+
+					ImGui::Checkbox("Focus IO", &light_camera_focus);
+					
+					if (ImGui::SliderInt("FOV", &lc_fov, 1, 180)) {
+						light_camera.set_fov((float)lc_fov);
+						light_camera.update_projection_matrix();
+						update_camera = true;
+					}
+					
+					if (ImGui::SliderInt("Near Z", &lc_near_z, 1, 100)) {
+						light_camera.set_clipping_near((float)lc_near_z);
+						light_camera.update_projection_matrix();
+						update_camera = true;
+					}
+
+					if (ImGui::SliderInt("Far Z", &lc_far_z, 1, 100)) {
+						light_camera.set_clipping_far((float)lc_far_z);
+						light_camera.update_projection_matrix();
+						update_camera = true;
+					}
+
+					ImGui::End();
+
+
+
+
 					ImGui::Begin("Light Sources");
 
 					if (ImGui::BeginMenu("Point light")) {
@@ -347,26 +381,51 @@ int main(int argc, const char **argv) {
 
 					wheel_d = AppWindow::IO::Mouse::get_wheel_delta();
 			
+
 					if(camera) {
-						
-						if (AppWindow::IO::Mouse::left_button_down()) {
-							arcball_camera.modify_vertical_angle(-cursor_x_delta * ORBITING_SENSITIVITY);
-							arcball_camera.modify_horizontal_angle(-cursor_y_delta * ORBITING_SENSITIVITY);
-							arcball_camera.update_view_matrix();
-							update_camera = true;
-						}
+						if (light_camera_focus) {
+							if (AppWindow::IO::Mouse::left_button_down()) {
+								light_camera.modify_vertical_angle(-cursor_x_delta * ORBITING_SENSITIVITY);
+								light_camera.modify_horizontal_angle(-cursor_y_delta * ORBITING_SENSITIVITY);
+								light_camera.update_view_matrix();
+								update_camera = true;
+							}
 
-						if (AppWindow::IO::Mouse::middle_button_down()) {
-							arcball_camera.pan_horizontal(-cursor_x_delta * PANNING_SENSITIVITY);
-							arcball_camera.pan_vertical(cursor_y_delta * PANNING_SENSITIVITY);
-							arcball_camera.update_view_matrix();
-							update_camera = true;
-						}
+							if (AppWindow::IO::Mouse::middle_button_down()) {
+								light_camera.pan_horizontal(-cursor_x_delta * PANNING_SENSITIVITY);
+								light_camera.pan_vertical(cursor_y_delta * PANNING_SENSITIVITY);
+								light_camera.update_view_matrix();
+								update_camera = true;
+							}
 
-						if (wheel_d) {
-							arcball_camera.modify_radius(-wheel_d * ZOOM_SENSITIVITY);
-							arcball_camera.update_view_matrix();
-							update_camera = true;
+							if (wheel_d) {
+								light_camera.modify_radius(-wheel_d * ZOOM_SENSITIVITY*0.1);
+								light_camera.update_view_matrix();
+								update_camera = true;
+							}
+
+
+						}
+						else {
+							if (AppWindow::IO::Mouse::left_button_down()) {
+								arcball_camera.modify_vertical_angle(-cursor_x_delta * ORBITING_SENSITIVITY);
+								arcball_camera.modify_horizontal_angle(-cursor_y_delta * ORBITING_SENSITIVITY);
+								arcball_camera.update_view_matrix();
+								update_camera = true;
+							}
+
+							if (AppWindow::IO::Mouse::middle_button_down()) {
+								arcball_camera.pan_horizontal(-cursor_x_delta * PANNING_SENSITIVITY);
+								arcball_camera.pan_vertical(cursor_y_delta * PANNING_SENSITIVITY);
+								arcball_camera.update_view_matrix();
+								update_camera = true;
+							}
+
+							if (wheel_d) {
+								arcball_camera.modify_radius(-wheel_d * ZOOM_SENSITIVITY);
+								arcball_camera.update_view_matrix();
+								update_camera = true;
+							}
 						}
 					} else {
 
@@ -422,6 +481,7 @@ int main(int argc, const char **argv) {
 					else 
 						arcball_camera.update();
 
+					light_camera.update();
 					update_camera = false;
 				}
 
@@ -476,6 +536,7 @@ int main(int argc, const char **argv) {
 
 					pbr_ptr->bind();
 					
+					
 					core->render_to_frame_buffer();		
 					shadow_map.bind(5);
 
@@ -489,6 +550,10 @@ int main(int argc, const char **argv) {
 				viewport_border.bind_topology();
 				viewport_border.bind_vertex_buffer();
 				viewport_border.draw(0);
+
+				//shadow_map_display.bind_topology();
+				//shadow_map_display.bind_vertex_buffer();
+				//shadow_map_display.draw(0);
 
 				ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 				

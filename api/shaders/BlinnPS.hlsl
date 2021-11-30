@@ -32,6 +32,8 @@ float3 calculate_blinn_phong_dir(float3 specular_color, float3 diffuse_color, fl
 
 float4 main(PS_INPUT input) : SV_TARGET {
     
+    input.world_position = mul(float4(input.world_position, 1.0), camera_matrix_);
+    
     float3 lighting = float3(0.0, 0.0, 0.0); 
     float4 used_diffuse;
     

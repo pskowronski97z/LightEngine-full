@@ -19,17 +19,26 @@ struct PS_INPUT {
 };
 
 cbuffer LIGHT_CAMERA : register(b4) {
+    float4 light_camera_data_;
     matrix light_camera_matrix_;
     matrix light_projection_matrix_;
 }
 
+cbuffer CAMERA : register(b0) {
+    float4 camera_data_;
+    matrix camera_matrix_;
+    matrix projection_matrix_;
+}
 
 PS_INPUT main( VS_INPUT input_vertex) {
     
     PS_INPUT vs_output;
     
     vs_output.world_position = input_vertex.position;
-    vs_output.position = mul(float4(input_vertex.position, 1.0f), light_camera_matrix_);
+    vs_output.position = mul(float4(input_vertex.position, 1.0f), camera_matrix_);
+    vs_output.position = mul(vs_output.position, projection_matrix_);
+    
+    vs_output.position = mul(vs_output.position, light_camera_matrix_);
     vs_output.position = mul(vs_output.position, light_projection_matrix_);
     
     return vs_output;

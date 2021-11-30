@@ -37,7 +37,11 @@ float attenuation[]{0.3, 0.3, 1.0};
 float roughness = 0.0;
 float metallic = 0.0;
 
+int lc_fov = 1;
+int lc_near_z = 30;
+int lc_far_z = 70;
 
+bool light_camera_focus = false;
 int glossiness = 400;
 int world_fov = 45;
 int arcball_fov = 45;

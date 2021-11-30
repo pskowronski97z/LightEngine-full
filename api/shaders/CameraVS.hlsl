@@ -1,4 +1,5 @@
 cbuffer CAMERA : register(b0) {
+    float4 camera_data_;
     matrix camera_matrix_;
     matrix projection_matrix_;
 }
@@ -28,6 +29,7 @@ cbuffer MATERIAL : register(b3) {
 };
 
 cbuffer LIGHT_CAMERA : register(b4) {
+    float4 light_camera_data_;
     matrix light_camera_matrix_;
     matrix light_projection_matrix_;
 }
@@ -93,7 +95,11 @@ PS_INPUT main(VS_INPUT input) {
     result.gouraud_shading = saturate(result.gouraud_shading);
     result.uvw = input.uvw;
     
-    result.light_space_position = mul(float4(input.position, 1.0), light_camera_matrix_);
+    
+    result.light_space_position = mul(float4(input.position, 1.0), camera_matrix_);
+    result.light_space_position = mul(result.light_space_position, projection_matrix_);
+    
+    result.light_space_position = mul(result.light_space_position, light_camera_matrix_);
     result.light_space_position = mul(result.light_space_position, light_projection_matrix_);
     
     return result;

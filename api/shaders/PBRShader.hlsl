@@ -17,6 +17,7 @@ struct LIGHT_SOURCE {
 };
 
 cbuffer CAMERA : register(b0) {
+    float4 camera_data_;
     matrix camera_matrix_;
     matrix projection_matrix_;
 }
@@ -46,6 +47,7 @@ cbuffer MATERIAL : register(b3) {
 };
 
 cbuffer LIGHT_CAMERA : register(b4) {
+    float4 light_camera_data_;
     matrix light_camera_matrix_;
     matrix light_projection_matrix_;
 }
@@ -157,12 +159,12 @@ float4 main(PS_INPUT input) : SV_TARGET {
     LIGHT_SOURCE point_light;
     point_light.color = color_pt;
     point_light.coordinates = mul(coordinates_pt, camera_matrix_);
-    point_light.intensity = additional_pt[0] * get_shadowing_value(input.light_space_position);
+    point_light.intensity = additional_pt[0];// * get_shadowing_value(input.light_space_position);
     
     LIGHT_SOURCE direct_light;
     direct_light.color = color_dir;
     direct_light.coordinates = coordinates_dir;
-    direct_light.intensity = additional_dir[0] * get_shadowing_value(input.light_space_position);
+    direct_light.intensity = additional_dir[0];// * get_shadowing_value(input.light_space_position);
     
     input.world_position = mul(float4(input.world_position, 1.0), camera_matrix_);
     

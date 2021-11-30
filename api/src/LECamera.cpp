@@ -15,7 +15,9 @@ LightEngine::Camera::Camera(std::shared_ptr<Core> core_ptr) : ConstantBuffer(cor
 	aspect_ratio_ = 16.0f / 9.0f;
 	near_z_ = 20.0f;
 	far_z_ = 100.0f;
-	
+	is_ortho_ = false;
+	ortho_scaling_ = 20.0;
+
 	update_projection_matrix();
 	reset();
 
@@ -34,18 +36,27 @@ void LightEngine::Camera::set_fov(float angle_in_degrees) {	fov_ = angle_in_degr
 
 void LightEngine::Camera::set_aspect_ratio(float aspect_ratio) { aspect_ratio_ = aspect_ratio; }
 
+void LightEngine::Camera::set_orthographic_scaling(float scaling) { ortho_scaling_= scaling; }
+
 void LightEngine::Camera::set_clipping_near(float near_z) { near_z_ = near_z; }
 
 void LightEngine::Camera::set_clipping_far(float far_z) { far_z_ = far_z; }
 
 void LightEngine::Camera::update_projection_matrix() {
-	transform_matrices_.projection_matrix = DirectX::XMMatrixPerspectiveFovLH(fov_, aspect_ratio_, near_z_, far_z_);
+	if(is_ortho_)
+		transform_matrices_.projection_matrix = DirectX::XMMatrixOrthographicLH(aspect_ratio_*ortho_scaling_, ortho_scaling_, near_z_, far_z_);
+	else
+		transform_matrices_.projection_matrix = DirectX::XMMatrixPerspectiveFovLH(fov_, aspect_ratio_, near_z_, far_z_);
 }
 
 void LightEngine::Camera::bind(short slot) {
 	bind_vs_buffer(slot);
 	bind_ps_buffer(slot);
 }
+
+void LightEngine::Camera::set_perspective_projection() { is_ortho_ = false; }
+
+void LightEngine::Camera::set_orthographic_projection() { is_ortho_ = true; }
 
 void LightEngine::Camera::update() {
 

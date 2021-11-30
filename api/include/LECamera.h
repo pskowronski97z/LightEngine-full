@@ -13,12 +13,14 @@ namespace LightEngine {
 		float aspect_ratio_;
 		float near_z_;
 		float far_z_;
+		float ortho_scaling_;
+		bool is_ortho_;
 		struct TransformMatrices {
+			DirectX::XMFLOAT4 data;
 			DirectX::XMMATRIX view_matrix;
 			DirectX::XMMATRIX projection_matrix;
 		};
 		TransformMatrices transform_matrices_;	
-	
 		Camera(std::shared_ptr<Core> core_ptr);
 
 	public:
@@ -27,11 +29,14 @@ namespace LightEngine {
 		/// </summary>
 		/// <param name="slot">Number of the register.</param>
 		void bind(short slot);
+		void set_perspective_projection();
+		void set_orthographic_projection();
 		void update();
 		void set_clipping_near(float near_z);
 		void set_clipping_far(float far_z);
 		void set_fov(float angle_in_degrees);
 		void set_aspect_ratio(float aspect_ratio);
+		void set_orthographic_scaling(float scaling);
 		virtual void reset();
 		std::shared_ptr<const DirectX::XMMATRIX> get_camera_matrix();
 		virtual void update_view_matrix();
