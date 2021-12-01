@@ -226,63 +226,6 @@ std::vector<LightEngine::Geometry<LightEngine::Vertex3>> LightEngine::Geometry<L
 	return result;
 }
 
-LightEngine::DEBUG_VSTransform::DEBUG_VSTransform(std::shared_ptr<Core> core_ptr) : angle_x_(0), angle_y_(0), CoreUser(core_ptr) {
-
-	D3D11_BUFFER_DESC buffer_desc;
-	D3D11_SUBRESOURCE_DATA sr_data;
-
-	buffer_desc.ByteWidth = sizeof(DirectX::XMMATRIX)*2;
-	buffer_desc.Usage = D3D11_USAGE_DYNAMIC;
-	buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	buffer_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	buffer_desc.MiscFlags = 0;
-	buffer_desc.StructureByteStride = sizeof(float);
-
-	rotations_[0] = DirectX::XMMatrixRotationX(0);
-	rotations_[1] = DirectX::XMMatrixRotationY(0);
-
-	rotations_tr_[0] = DirectX::XMMatrixTranspose(rotations_[0]);
-	rotations_tr_[1] = DirectX::XMMatrixTranspose(rotations_[1]);
-
-	sr_data.pSysMem = rotations_tr_;
-
-	call_result_ = core_ptr_->get_device_ptr()->CreateBuffer(&buffer_desc, &sr_data, &constant_buffer_ptr_);
-
-	if(FAILED(call_result_))
-		throw LECoreException("<D3D11 ERROR> <VSTransform constant buffer creation failed> ", "LEGeometry.cpp",__LINE__, call_result_);
-
-	core_ptr_->get_context_ptr()->VSSetConstantBuffers(4,1,constant_buffer_ptr_.GetAddressOf());
-}
-
-void LightEngine::DEBUG_VSTransform::rotate_x(float delta_x) {
-	angle_x_ += delta_x;
-	rotations_[0] = DirectX::XMMatrixRotationX(angle_x_);
-	rotations_tr_[0] = DirectX::XMMatrixTranspose(rotations_[0]);
-}
-
-void LightEngine::DEBUG_VSTransform::rotate_y(float delta_y) {
-	angle_y_ += delta_y;
-	rotations_[1] = DirectX::XMMatrixRotationY(angle_y_);
-	rotations_tr_[1] = DirectX::XMMatrixTranspose(rotations_[1]);
-}
-
-void LightEngine::DEBUG_VSTransform::update() {
-
-	D3D11_MAPPED_SUBRESOURCE new_constant_buffer;
-	ZeroMemory(&new_constant_buffer,sizeof(new_constant_buffer));
-
-	call_result_ = core_ptr_->get_context_ptr()->Map(constant_buffer_ptr_.Get(),0,D3D11_MAP_WRITE_DISCARD,0,&new_constant_buffer);
-
-	if(FAILED(call_result_))
-		throw LECoreException("<VSTransform constant buffer mapping failed> ", "LEGeometry.cpp",__LINE__, call_result_);
-	
-	memcpy(new_constant_buffer.pData,rotations_tr_,sizeof(DirectX::XMMATRIX)*2);
-
-	core_ptr_->get_context_ptr()->Unmap(constant_buffer_ptr_.Get(),0);
-}
-
-
-
 LightEngine::LightSource::LightSource(std::shared_ptr<Core> core_ptr, float type)
 	: ConstantBuffer(core_ptr) {
 

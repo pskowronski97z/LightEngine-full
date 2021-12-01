@@ -17,7 +17,6 @@ struct LIGHT_SOURCE {
 };
 
 cbuffer CAMERA : register(b0) {
-    float4 camera_data_;
     matrix camera_matrix_;
     matrix projection_matrix_;
 }
@@ -47,7 +46,6 @@ cbuffer MATERIAL : register(b3) {
 };
 
 cbuffer LIGHT_CAMERA : register(b4) {
-    float4 light_camera_data_;
     matrix light_camera_matrix_;
     matrix light_projection_matrix_;
 }

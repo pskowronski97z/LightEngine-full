@@ -1,11 +1,12 @@
 #pragma once
 #pragma comment (lib, "tinyobjloader")
-#include <memory>
-#include <LEShader.h>
+#include <LECamera.h>
 #include <wrl.h>
 #include <LEData.h>
 
 namespace LightEngine {
+
+	class Camera;
 
 	template <class T> 
 	class Geometry : private CoreUser {
@@ -35,7 +36,6 @@ namespace LightEngine {
 
 	template class __declspec(dllexport) Geometry<Vertex3>;
 
-	// --------------- Work in progress ----------------------------------
 	class __declspec(dllexport) LightSource : public ConstantBuffer{
 	private:
 		struct Parameters {
@@ -51,22 +51,5 @@ namespace LightEngine {
 		void set_intensity(float intensity);
 		void update();
 	};
-	// --------------- Work in progress ----------------------------------
 	
-	// ------------- For debug only -----------------------------
-	class __declspec(dllexport) DEBUG_VSTransform : private CoreUser {
-	private:
-		Microsoft::WRL::ComPtr<ID3D11Buffer> constant_buffer_ptr_;
-		DirectX::XMMATRIX rotations_[2]; // x (0), y (1)
-		DirectX::XMMATRIX rotations_tr_[2]; // x (0), y (1)
-		float angle_x_;
-		float angle_y_;
-	public:
-		DEBUG_VSTransform(std::shared_ptr<Core> core_ptr);
-		void rotate_x(float delta_x);
-		void rotate_y(float delta_y);
-		void update();
-	};
-
-	// ------------- For debug only -----------------------------
 }

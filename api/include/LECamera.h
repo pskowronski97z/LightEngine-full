@@ -16,7 +16,6 @@ namespace LightEngine {
 		float ortho_scaling_;
 		bool is_ortho_;
 		struct TransformMatrices {
-			DirectX::XMFLOAT4 data;
 			DirectX::XMMATRIX view_matrix;
 			DirectX::XMMATRIX projection_matrix;
 		};
