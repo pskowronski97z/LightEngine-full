@@ -23,6 +23,7 @@ COMDLG_FILTERSPEC image_file_filter[image_file_filter_size] = {
 		{L"Radiance HDR", L"*.hdr, *.pic"}
 };
 
+const float *camera_space_z = nullptr;
 float specular_color[]{ 1.0, 1.0, 1.0 };
 float diffuse_color[]{ 1.0, 1.0, 1.0 };
 float ambient_color[]{ 0.0, 0.0, 0.0 };
@@ -37,11 +38,12 @@ float attenuation[]{0.3, 0.3, 1.0};
 float roughness = 0.0;
 float metallic = 0.0;
 
-int lc_fov = 1;
-int lc_near_z = 30;
-int lc_far_z = 70;
+int lc_scaling = 1;
+int lc_near_z = 5;
+int lc_far_z = 200;
+float lc_position[3] = {0.0, 0.0, 0.0};
+int lc_angles[2] = {0.0, 0.0};
 
-bool light_camera_focus = false;
 int glossiness = 400;
 int world_fov = 45;
 int arcball_fov = 45;

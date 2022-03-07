@@ -78,5 +78,37 @@ namespace LightEngine {
 		void pan_vertical(float delta);
 		void reset() override;
 	};
+
+	class __declspec(dllexport) LightViewCamera : public Camera {
+	private:
+		float horizontal_angle_;
+		float vertical_angle_;
+		float position_[3];
+		float camera_space_x_[4];
+		float camera_space_y_[4];
+		float camera_space_z_[4];
+	public:
+		LightViewCamera(std::shared_ptr<Core> core_ptr);
+		void set_position(float x, float y, float z);
+		void set_horizontal_angle(float angle);
+		void set_vertical_angle(float angle);
+		void update_view_matrix();
+		void reset() override;
+		/// <summary>
+		/// Return 4-component vector which represents x-axis of camera space
+		/// </summary>
+		/// <returns></returns>
+		const float *get_x_axis() const;
+		/// <summary>
+		/// Return 4-component vector which represents y-axis of camera space
+		/// </summary>
+		/// <returns></returns>
+		const float *get_y_axis() const;
+		/// <summary>
+		/// Return 4-component vector which represents z-axis of camera space
+		/// </summary>
+		/// <returns></returns>
+		const float *get_z_axis() const;
+	};
 	
 }

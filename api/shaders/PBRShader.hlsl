@@ -161,8 +161,8 @@ float4 main(PS_INPUT input) : SV_TARGET {
     
     LIGHT_SOURCE direct_light;
     direct_light.color = color_dir;
-    direct_light.coordinates = coordinates_dir;
-    direct_light.intensity = additional_dir[0];// * get_shadowing_value(input.light_space_position);
+    direct_light.coordinates = mul(coordinates_dir, camera_matrix_);
+    direct_light.intensity = additional_dir[0]; // * get_shadowing_value(input.light_space_position);
     
     input.world_position = mul(float4(input.world_position, 1.0), camera_matrix_);
     
@@ -193,7 +193,7 @@ float4 main(PS_INPUT input) : SV_TARGET {
     if(use_normal_map)
         input.normal = get_mapped_normal(input);
     
-    float3 lighting = get_reflectance_pt(input, point_light, used_roughness, used_metalness) * used_ao;
+    float3 lighting = get_reflectance_dir(input, direct_light, used_roughness, used_metalness) * used_ao;
     lighting = lighting / (lighting + 1.0f); // Conversion to HDR
     lighting = pow(lighting, 0.8f); // Gamma correction
     

@@ -218,3 +218,77 @@ void LightEngine::ArcballCamera::reset() {
 	update_view_matrix();
 }
 
+LightEngine::LightViewCamera::LightViewCamera(std::shared_ptr<Core> core_ptr) : Camera(core_ptr) { 
+	reset();
+	update();
+}
+
+void LightEngine::LightViewCamera::set_position(float x, float y, float z) {
+	position_[0] = x;
+	position_[1] = y;
+	position_[2] = z;
+}
+
+void LightEngine::LightViewCamera::set_horizontal_angle(float angle) { horizontal_angle_ = angle; }
+
+void LightEngine::LightViewCamera::set_vertical_angle(float angle) { vertical_angle_ = angle; }
+
+void LightEngine::LightViewCamera::update_view_matrix() {
+
+	transform_matrices_.view_matrix.r[0].m128_f32[0] = 1.0;
+	transform_matrices_.view_matrix.r[0].m128_f32[1] = 0.0;
+	transform_matrices_.view_matrix.r[0].m128_f32[2] = 0.0;
+	transform_matrices_.view_matrix.r[0].m128_f32[3] = 0.0;
+
+	transform_matrices_.view_matrix.r[1].m128_f32[0] = 0.0;
+	transform_matrices_.view_matrix.r[1].m128_f32[1] = 1.0;
+	transform_matrices_.view_matrix.r[1].m128_f32[2] = 0.0;
+	transform_matrices_.view_matrix.r[1].m128_f32[3] = 0.0;
+
+	transform_matrices_.view_matrix.r[2].m128_f32[0] = 0.0;
+	transform_matrices_.view_matrix.r[2].m128_f32[1] = 0.0;
+	transform_matrices_.view_matrix.r[2].m128_f32[2] = 1.0;
+	transform_matrices_.view_matrix.r[2].m128_f32[3] = 0.0;
+
+	transform_matrices_.view_matrix.r[3].m128_f32[0] = position_[0];
+	transform_matrices_.view_matrix.r[3].m128_f32[1] = position_[1];
+	transform_matrices_.view_matrix.r[3].m128_f32[2] = position_[2];
+	transform_matrices_.view_matrix.r[3].m128_f32[3] = 1.0;
+
+	transform_matrices_.view_matrix *= DirectX::XMMatrixRotationY(vertical_angle_ * M_PI/180.0f);
+	transform_matrices_.view_matrix *= DirectX::XMMatrixRotationX(horizontal_angle_ * M_PI/180.0f);
+
+	camera_space_x_[0] = transform_matrices_.view_matrix.r[0].m128_f32[0];
+	camera_space_x_[1] = transform_matrices_.view_matrix.r[0].m128_f32[1];
+	camera_space_x_[2] = transform_matrices_.view_matrix.r[0].m128_f32[2];
+	camera_space_x_[3] = transform_matrices_.view_matrix.r[0].m128_f32[3];
+
+	camera_space_y_[0] = transform_matrices_.view_matrix.r[1].m128_f32[0];
+	camera_space_y_[1] = transform_matrices_.view_matrix.r[1].m128_f32[1];
+	camera_space_y_[2] = transform_matrices_.view_matrix.r[1].m128_f32[2];
+	camera_space_y_[3] = transform_matrices_.view_matrix.r[1].m128_f32[3];
+
+	camera_space_z_[0] = transform_matrices_.view_matrix.r[0].m128_f32[2];
+	camera_space_z_[1] = transform_matrices_.view_matrix.r[1].m128_f32[2];
+	camera_space_z_[2] = transform_matrices_.view_matrix.r[2].m128_f32[2];
+	camera_space_z_[3] = transform_matrices_.view_matrix.r[3].m128_f32[2];
+	
+
+}
+
+void LightEngine::LightViewCamera::reset() {
+	horizontal_angle_ = 0.0;
+	vertical_angle_ = 0.0;
+	position_[0] = 0.0;
+	position_[1] = 0.0;
+	position_[2] = 0.0;
+	update_view_matrix();
+}
+
+const float* LightEngine::LightViewCamera::get_x_axis() const {	return camera_space_x_; }
+
+const float* LightEngine::LightViewCamera::get_y_axis() const {	return camera_space_y_; }
+
+const float* LightEngine::LightViewCamera::get_z_axis() const {	return camera_space_z_; }
+
+

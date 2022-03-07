@@ -27,17 +27,18 @@ namespace LightEngine {
 		static std::vector<Geometry<T>> load_from_obj(std::shared_ptr<Core> core_ptr, std::string filename);
 		Geometry(std::shared_ptr<Core> core_ptr, std::vector<T> vertices, D3D11_PRIMITIVE_TOPOLOGY topology, std::string name);
 		void set_indices(std::vector<unsigned int> indices);
-		inline void bind_vertex_buffer();
-		inline void bind_index_buffer();
-		inline void bind_topology();
-		inline void draw(int start_loc);		
-		inline void draw_indexed(int start_loc);
+		void bind_vertex_buffer();
+		void bind_index_buffer();
+		void bind_topology();
+		void draw(int start_loc);		
+		void draw_indexed(int start_loc);
 	};
 
 	template class __declspec(dllexport) Geometry<Vertex3>;
 
 	class __declspec(dllexport) LightSource : public ConstantBuffer{
 	private:
+
 		struct Parameters {
 			float coordinates[4];
 			float color[4];

@@ -33,10 +33,10 @@ PS_INPUT main( VS_INPUT input_vertex) {
     PS_INPUT vs_output;
     
     vs_output.world_position = input_vertex.position;
-    vs_output.position = mul(float4(input_vertex.position, 1.0f), camera_matrix_);
-    vs_output.position = mul(vs_output.position, projection_matrix_);
+    //vs_output.position = mul(float4(input_vertex.position, 1.0f), camera_matrix_);
+    //vs_output.position = mul(vs_output.position, projection_matrix_);
     
-    vs_output.position = mul(vs_output.position, light_camera_matrix_);
+    vs_output.position = mul(float4(input_vertex.position, 1.0f), light_camera_matrix_);
     vs_output.position = mul(vs_output.position, light_projection_matrix_);
     
     return vs_output;
