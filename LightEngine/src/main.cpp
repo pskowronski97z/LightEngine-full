@@ -64,14 +64,14 @@ int main(int argc, const char **argv) {
 		LightEngine::PixelShader pbr_ps(core, shader_directory + L"PBRShader.cso");	
 		LightEngine::PixelShader hud_ps(core, shader_directory + L"ViewportHUD_PS.cso");
 		LightEngine::PixelShader shadow_mapping_ps(core, shader_directory + L"ShadowMappingPS.cso");
-
+		LightEngine::PixelShader mc_gi(core, shader_directory + L"MonteCarloGI.cso");
 		
 
 		std::shared_ptr<LightEngine::PixelShader> blinn_ps_ptr = std::make_shared<LightEngine::PixelShader>(blinn_ps);
 		std::shared_ptr<LightEngine::PixelShader> phong_ps_ptr = std::make_shared<LightEngine::PixelShader>(phong_ps);
 		std::shared_ptr<LightEngine::PixelShader> gouraud_ps_ptr = std::make_shared<LightEngine::PixelShader>(gouraud_ps);
 		std::shared_ptr<LightEngine::PixelShader> pbr_ps_ptr = std::make_shared<LightEngine::PixelShader>(pbr_ps);
-
+		std::shared_ptr<LightEngine::PixelShader> mc_gi_ptr = std::make_shared<LightEngine::PixelShader>(mc_gi);
 		
 
 
@@ -115,9 +115,20 @@ int main(int argc, const char **argv) {
 			{{-0.4,-0.99,0.0},{0.4,0.4,0.4,-1.0},{1,1,0}},			
 			{{-0.4,0.0,0.0},{0.4,0.4,0.4,-1.0},{1,0,0}}};
 
+		std::vector<LightEngine::Vertex3> test_plane_vtx{
+			{{25.0, 0.0, -25.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}},
+			{{-25.0, 0.0, 25.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}},
+			{{25.0, 0.0, 25.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}},
+			{{-25.0, 0.0, -25.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}},
+			{{-25.0, 0.0, 25.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}},
+			{{25.0, 0.0, -25.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}}
+		};
+
 		LightEngine::Geometry<LightEngine::Vertex3> viewport_border(core, border_vertices, D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP, "border");
 		LightEngine::Geometry<LightEngine::Vertex3> shadow_map_display(core, shadow_map_display_vertices, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP,"shadow_map_display");
-		
+		LightEngine::Geometry<LightEngine::Vertex3> test_plane(core, test_plane_vtx, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, "test_plane");
+
+		scene.push_back(test_plane);
 
 		direct_light.set_position(direct_light_position);
 		default_material.assign_vertex_shader(std::make_shared<LightEngine::VertexShader>(vs));
@@ -126,10 +137,10 @@ int main(int argc, const char **argv) {
 		std::shared_ptr<LightEngine::Materials::BasicMaterial> default_ptr = std::make_shared<LightEngine::Materials::BasicMaterial>(default_material);
 		std::shared_ptr<LightEngine::Materials::PBRMaterial> pbr_ptr = std::make_shared<LightEngine::Materials::PBRMaterial>(pbr_material);	
 
-		material_editor.load_material(pbr_ptr);
+		material_editor.load_material(default_ptr);
 
-		pbr_ptr->assign_vertex_shader(std::make_shared<LightEngine::VertexShader>(vs));
-		pbr_ptr->assign_pixel_shader(pbr_ps_ptr);
+		default_ptr->assign_vertex_shader(std::make_shared<LightEngine::VertexShader>(vs));
+		default_ptr->assign_pixel_shader(blinn_ps_ptr);
 
 		point_light.bind_ps_buffer(1);
 		point_light.bind_vs_buffer(1);
@@ -516,32 +527,22 @@ int main(int argc, const char **argv) {
 				}
 
 				core->clear_frame_buffer(color);
-				shadow_map.clear();
 				
-				//default_ptr->bind();
-				
-				for (int i = 0; i < scene.size(); i++) {
-					
-					
-					shadow_mapping_vs.bind();
-					shadow_mapping_ps.bind();
-							
+
+				default_ptr->bind();
+
+				scene[0].bind_topology();
+				scene[0].bind_vertex_buffer();
+				scene[0].draw(0);	
+
+				for (int i = 1; i < scene.size(); i++) {
+											
+					mc_gi_ptr->bind();
+
 					scene[i].bind_topology();
 					scene[i].bind_vertex_buffer();
 
-					shadow_map.unbind();
-					core->render_to_texture(shadow_map);	
-					
-					scene[i].draw(0);
-
-					pbr_ptr->bind();
-					
-					
-					core->render_to_frame_buffer();		
-					shadow_map.bind(5);
-
-					scene[i].draw(0);
-					
+					scene[i].draw(0);			
 				}
 
 				hud_vs.bind();
@@ -551,9 +552,6 @@ int main(int argc, const char **argv) {
 				viewport_border.bind_vertex_buffer();
 				viewport_border.draw(0);
 
-				//shadow_map_display.bind_topology();
-				//shadow_map_display.bind_vertex_buffer();
-				//shadow_map_display.draw(0);
 
 				ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 				

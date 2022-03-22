@@ -32,7 +32,7 @@ float3 calculate_blinn_phong_dir(float3 specular_color, float3 diffuse_color, fl
 
 float4 main(PS_INPUT input) : SV_TARGET {
     
-    input.world_position = mul(float4(input.world_position, 1.0), camera_matrix_);
+    //input.world_position = mul(float4(input.world_position, 1.0), camera_matrix_);
     
     float3 lighting = float3(0.0, 0.0, 0.0); 
     float4 used_diffuse;
@@ -47,8 +47,8 @@ float4 main(PS_INPUT input) : SV_TARGET {
     else
         input.normal = normalize(input.normal);
     
-    lighting += calculate_blinn_phong_dir(specular * specular_level, used_diffuse, ambient, mul(coordinates_dir, camera_matrix_), color_dir * additional_dir[0], glossiness, input);
-    lighting += calculate_blinn_phong_pt(specular * specular_level, used_diffuse, ambient, mul(coordinates_pt, camera_matrix_), color_pt * additional_pt[0], glossiness, input);
+    //lighting += calculate_blinn_phong_dir(specular * specular_level, used_diffuse, ambient,coordinates_dir, color_dir * additional_dir[0], glossiness, input);
+    lighting = calculate_blinn_phong_pt(specular * specular_level, used_diffuse, ambient, coordinates_pt, color_pt * additional_pt[0], glossiness, input);
       
     lighting = lighting / (lighting + 1.0f); // Conversion to HDR
     lighting = pow(lighting, 0.8f); // Gamma correction

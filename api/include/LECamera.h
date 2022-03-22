@@ -15,6 +15,7 @@ namespace LightEngine {
 		float far_z_;
 		float ortho_scaling_;
 		bool is_ortho_;
+		float camera_world_position_[3];
 		struct TransformMatrices {
 			DirectX::XMMATRIX view_matrix;
 			DirectX::XMMATRIX projection_matrix;
@@ -47,8 +48,6 @@ namespace LightEngine {
 	private:
 		float horizontal_angle_;
 		float vertical_angle_;
-		float position_[3];
-
 	public:
 		FPSCamera(std::shared_ptr<Core> core_ptr);
 		void update_view_matrix() override;

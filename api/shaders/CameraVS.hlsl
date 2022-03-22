@@ -71,34 +71,19 @@ float3 gouraud_dir(float3 light_direction, float4 light_color, float3 vertex_nor
 PS_INPUT main(VS_INPUT input) {
 	
     PS_INPUT result;
-    
-    // ----------------- DEBUG ---------------------
-    //input.position = mul(float4(input.position, 1.0f), rotate_y_);
-    //input.normal = mul(float4(input.normal, 1.0f), rotate_y_);
-    
-    //input.position = mul(float4(input.position, 1.0f), rotate_x_);
-    //result.normal = mul(float4(input.normal, 1.0f), rotate_x_);
-    // ---------------------------------------------
-    
-    result.world_position = input.position;  
+
     result.position = mul(float4(input.position, 1.0f), camera_matrix_);
     result.position = mul(result.position, projection_matrix_);  
-    result.normal = mul(float4(input.normal, 0.0f), camera_matrix_);    
-    result.tangent = mul(float4(input.tangent, 0.0f), camera_matrix_);
-    result.bitangent = mul(float4(input.bitangent, 0.0f), camera_matrix_);
     result.color = input.color;
-    
-    result.gouraud_shading = gouraud_pt(mul(coordinates_pt, camera_matrix_), color_pt, result.world_position, result.normal);
-    result.gouraud_shading += gouraud_dir(mul(coordinates_dir, camera_matrix_), color_dir, result.normal);
-    result.gouraud_shading = saturate(result.gouraud_shading);
     result.uvw = input.uvw;
-    
-    
-    result.light_space_position = mul(float4(input.position, 1.0), camera_matrix_);
-    result.light_space_position = mul(result.light_space_position, projection_matrix_);
-    
-    result.light_space_position = mul(result.light_space_position, light_camera_matrix_);
-    result.light_space_position = mul(result.light_space_position, light_projection_matrix_);
-    
+    result.normal = input.normal;
+    result.tangent = input.tangent;
+    result.bitangent = input.bitangent;
+    result.world_position = input.position;
+  
+    result.gouraud_shading = gouraud_pt(coordinates_pt, color_pt, result.world_position, result.normal);
+    result.gouraud_shading += gouraud_dir(coordinates_dir, color_dir, result.normal);
+    result.gouraud_shading = saturate(result.gouraud_shading);
+     
     return result;
 }
