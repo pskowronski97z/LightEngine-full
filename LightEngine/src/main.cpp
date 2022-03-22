@@ -503,8 +503,8 @@ int main(int argc, const char **argv) {
 				}
 
 				if(update_material){
-					//default_ptr->update();
-					pbr_ptr->update();
+					default_ptr->update();
+					//pbr_ptr->update();
 					update_material = false;
 				}
 
