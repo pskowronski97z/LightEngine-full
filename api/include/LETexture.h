@@ -1,9 +1,5 @@
 #pragma once
-#pragma comment(lib,"opencv_world450d")
 #include <LECore.h>
-#include <opencv2/opencv.hpp>
-#include <memory>
-
 
 namespace LightEngine {
 
@@ -14,18 +10,23 @@ namespace LightEngine {
 		D3D11_TEXTURE2D_DESC texture_descriptor_;
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> texture_ptr_;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> texture_srv_ptr_;
+		Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> texture_uav_ptr_;
 		Texture(std::shared_ptr<Core> &core_ptr, std::string name);
 	public:
 		void bind(short slot);
 		void unbind() const;
+		void generate_mip_maps() const;
 		std::string get_name() const;
 		int get_width() const;
 		int get_height() const;
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> get_srv_ptr() const;
+		Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> get_uav_ptr() const;
 	};
 
 	class __declspec(dllexport) StaticTexture : public Texture {
 	public:
 		StaticTexture(std::shared_ptr<Core> core_ptr, std::string texture_path);
+		StaticTexture(std::shared_ptr<Core> core_ptr, const std::string &name, int width, int height, float *data);
 	};
 
 	class __declspec(dllexport) RenderableTexture : public Texture {

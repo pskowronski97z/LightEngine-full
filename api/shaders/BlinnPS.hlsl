@@ -36,10 +36,10 @@ float4 main(PS_INPUT input) : SV_TARGET {
     float3 lighting = float3(0.0, 0.0, 0.0); 
     float4 used_diffuse;
     
-    if(use_diffuse_map_)
+    //if(use_diffuse_map_)
         used_diffuse = DIFFUSE_MAP.Sample(DEFAULT_SAMPLER, float2(input.uvw[0], input.uvw[1]));
-    else
-        used_diffuse = diffuse;
+    //else
+    //    used_diffuse = diffuse;
     
     if(use_normal_map_)
         input.normal = get_mapped_normal(input);

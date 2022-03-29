@@ -108,27 +108,27 @@ void LightEngine::FPSCamera::update_view_matrix() {
 		camera_world_position_[0], camera_world_position_[1], camera_world_position_[2], 1
 	);
 
-	transform_matrices_.view_matrix *= DirectX::XMMatrixRotationY(DirectX::XMConvertToRadians(vertical_angle_));
-	transform_matrices_.view_matrix *= DirectX::XMMatrixRotationX(DirectX::XMConvertToRadians(horizontal_angle_));
+	transform_matrices_.view_matrix *= DirectX::XMMatrixRotationY(vertical_angle_);
+	transform_matrices_.view_matrix *= DirectX::XMMatrixRotationX(horizontal_angle_);
 
 }
 
 void LightEngine::FPSCamera::modify_horizontal_angle(float delta_angle) {
-	horizontal_angle_ += delta_angle;
+	horizontal_angle_ += DirectX::XMConvertToRadians(delta_angle);
 }
 
 void LightEngine::FPSCamera::modify_vertical_angle(float delta_angle) {
-	vertical_angle_ += delta_angle;
+	vertical_angle_ += DirectX::XMConvertToRadians(delta_angle);
 }
 
 void LightEngine::FPSCamera::move_relative_z(float delta) {
-	camera_world_position_[0] += delta * sin(DirectX::XMConvertToRadians(-vertical_angle_));
-	camera_world_position_[2] += delta * cos(DirectX::XMConvertToRadians(-vertical_angle_));
+	camera_world_position_[0] += delta * DirectX::XMScalarSin(-vertical_angle_);
+	camera_world_position_[2] += delta * DirectX::XMScalarCos(-vertical_angle_);
 }
 
 void LightEngine::FPSCamera::move_relative_x(float delta) {
-	camera_world_position_[0] += delta * cos(DirectX::XMConvertToRadians(vertical_angle_));
-	camera_world_position_[2] += delta * sin(DirectX::XMConvertToRadians(vertical_angle_));
+	camera_world_position_[0] += delta * DirectX::XMScalarCos(vertical_angle_);
+	camera_world_position_[2] += delta * DirectX::XMScalarSin(vertical_angle_);
 }
 
 void LightEngine::FPSCamera::move_y(float delta) {
@@ -161,12 +161,12 @@ LightEngine::ArcballCamera::ArcballCamera(std::shared_ptr<Core> core_ptr, float 
 
 void LightEngine::ArcballCamera::update_view_matrix() {
 	
-	static DirectX::XMVECTOR camera_position; 
+	static DirectX::XMVECTOR camera_world_position; 
 
-	camera_position.m128_f32[0] = 0.0;
-	camera_position.m128_f32[1] = 0.0;
-	camera_position.m128_f32[2] = -radius_;
-	camera_position.m128_f32[3] = 1.0;
+	camera_world_position.m128_f32[0] = 0.0;
+	camera_world_position.m128_f32[1] = 0.0;
+	camera_world_position.m128_f32[2] = -radius_;
+	camera_world_position.m128_f32[3] = 1.0;
 
 	transform_matrices_.view_matrix = DirectX::XMMatrixSet(
 	1.0, 0.0, 0.0, 0.0,
@@ -174,25 +174,25 @@ void LightEngine::ArcballCamera::update_view_matrix() {
 	0.0, 0.0, 1.0, 0.0,
 	-center_[0], -center_[1], -center_[2], 1.0);
 	
-	transform_matrices_.view_matrix *= DirectX::XMMatrixRotationY(DirectX::XMConvertToRadians(vertical_angle_));
-	transform_matrices_.view_matrix *= DirectX::XMMatrixRotationX(DirectX::XMConvertToRadians(horizontal_angle_));
+	transform_matrices_.view_matrix *= DirectX::XMMatrixRotationY(vertical_angle_);
+	transform_matrices_.view_matrix *= DirectX::XMMatrixRotationX(horizontal_angle_);
 	transform_matrices_.view_matrix.r[3].m128_f32[2] += radius_;
 
-	camera_position = DirectX::XMVector4Transform(camera_position, DirectX::XMMatrixRotationX(DirectX::XMConvertToRadians(-horizontal_angle_)));
-	camera_position = DirectX::XMVector4Transform(camera_position, DirectX::XMMatrixRotationY(DirectX::XMConvertToRadians(-vertical_angle_)));
+	camera_world_position = DirectX::XMVector4Transform(camera_world_position, DirectX::XMMatrixRotationX(-horizontal_angle_));
+	camera_world_position = DirectX::XMVector4Transform(camera_world_position, DirectX::XMMatrixRotationY(-vertical_angle_));
 
-	camera_world_position_[0] = camera_position.m128_f32[0] + center_[0];
-	camera_world_position_[1] = camera_position.m128_f32[1] + center_[1];
-	camera_world_position_[2] = camera_position.m128_f32[2] + center_[2];
+	camera_world_position_[0] = camera_world_position.m128_f32[0] + center_[0];
+	camera_world_position_[1] = camera_world_position.m128_f32[1] + center_[1];
+	camera_world_position_[2] = camera_world_position.m128_f32[2] + center_[2];
 
 }
 
 void LightEngine::ArcballCamera::modify_horizontal_angle(float delta_angle) {
-	horizontal_angle_ += delta_angle;
+	horizontal_angle_ += DirectX::XMConvertToRadians(delta_angle);
 }
 
 void LightEngine::ArcballCamera::modify_vertical_angle(float delta_angle) {
-	vertical_angle_ += delta_angle;
+	vertical_angle_ += DirectX::XMConvertToRadians(delta_angle);
 }
 
 void LightEngine::ArcballCamera::modify_radius(float delta_radius) {
@@ -206,13 +206,13 @@ void LightEngine::ArcballCamera::modify_center(float delta_x, float delta_y, flo
 }
 
 void LightEngine::ArcballCamera::pan_horizontal(float delta) {
-	center_[0] += delta * cos(DirectX::XMConvertToRadians(vertical_angle_));
-	center_[2] += delta * sin(DirectX::XMConvertToRadians(vertical_angle_));
+	center_[0] += delta * DirectX::XMScalarCos(vertical_angle_);
+	center_[2] += delta * DirectX::XMScalarSin(vertical_angle_);
 }
 
 void LightEngine::ArcballCamera::pan_vertical(float delta) {
-	center_[1] += delta * cos(DirectX::XMConvertToRadians(-horizontal_angle_));
-	center_[2] += delta * sin(DirectX::XMConvertToRadians(-horizontal_angle_));
+	center_[1] += delta * DirectX::XMScalarCos(-horizontal_angle_);
+	center_[2] += delta * DirectX::XMScalarSin(-horizontal_angle_);
 }
 
 void LightEngine::ArcballCamera::reset() {

@@ -1,7 +1,66 @@
-#include "LETexture.h"
+#pragma comment(lib,"opencv_world450d")
+#include <opencv2/opencv.hpp>
+#include <LETexture.h>
 #include <LEException.h>
-
 #define FILE_NOT_FOUND 0x80070002
+
+
+LightEngine::Sampler::Sampler(std::shared_ptr<Core> core_ptr, Filtering filtering) : CoreUser(core_ptr){
+	D3D11_SAMPLER_DESC sampler_desc_ = {};
+	sampler_desc_.Filter = (D3D11_FILTER)filtering;
+	sampler_desc_.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampler_desc_.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampler_desc_.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampler_desc_.MaxAnisotropy = D3D11_REQ_MAXANISOTROPY;
+	sampler_desc_.MipLODBias = 0.0f;
+	sampler_desc_.MinLOD = 0.0f;
+	sampler_desc_.MaxLOD = D3D11_REQ_MIP_LEVELS;
+
+	call_result_ = core_ptr_->get_device_ptr()->CreateSamplerState(&sampler_desc_, &sampler_state_ptr_);
+	if (FAILED(call_result_))
+		throw LECoreException("<D3D11 ERROR> <Sampler state creation failed>", "LETexture.cpp", __LINE__ - 2, call_result_);
+}
+
+void LightEngine::Sampler::bind(short slot) const {
+	core_ptr_->get_context_ptr()->PSSetSamplers(slot, 1, sampler_state_ptr_.GetAddressOf());
+}
+
+
+LightEngine::Texture::Texture(std::shared_ptr<Core>& core_ptr, std::string name)
+	: CoreUser(core_ptr),
+	name_(name),
+	binding_slot_(0),
+	texture_descriptor_({0}),
+	texture_ptr_(nullptr),
+	texture_srv_ptr_(nullptr) {}
+
+void LightEngine::Texture::unbind() const {
+	static ID3D11ShaderResourceView* const null_srv = { 0 };
+	core_ptr_->get_context_ptr()->PSSetShaderResources(binding_slot_, 1, &null_srv);
+}
+
+void LightEngine::Texture::generate_mip_maps() const { core_ptr_->get_context_ptr()->GenerateMips(texture_srv_ptr_.Get()); }
+
+std::string LightEngine::Texture::get_name() const { return name_; }
+
+int LightEngine::Texture::get_width() const { return texture_descriptor_.Width; }
+
+int LightEngine::Texture::get_height() const { return texture_descriptor_.Height; }
+
+Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> LightEngine::Texture::get_srv_ptr() const {
+	return texture_srv_ptr_;
+}
+
+Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> LightEngine::Texture::get_uav_ptr() const {
+	return texture_uav_ptr_;
+}
+
+void LightEngine::Texture::bind(short slot) {
+	binding_slot_ = slot;
+	core_ptr_->get_context_ptr()->PSSetShaderResources(binding_slot_, 1, texture_srv_ptr_.GetAddressOf());
+	core_ptr_->get_context_ptr()->CSSetShaderResources(binding_slot_, 1, texture_srv_ptr_.GetAddressOf());
+}
+
 
 LightEngine::StaticTexture::StaticTexture(std::shared_ptr<Core> core_ptr, std::string texture_path) : Texture(core_ptr, ""){
 	cv::Mat texture_buffer_ = cv::imread(texture_path);
@@ -30,7 +89,7 @@ LightEngine::StaticTexture::StaticTexture(std::shared_ptr<Core> core_ptr, std::s
 	texture_descriptor_.SampleDesc.Count = 1u;
 	texture_descriptor_.SampleDesc.Quality = 0u;
 	texture_descriptor_.Usage = D3D11_USAGE_DEFAULT;
-	texture_descriptor_.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
+	texture_descriptor_.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET | D3D11_BIND_UNORDERED_ACCESS;
 	texture_descriptor_.CPUAccessFlags = 0;
 	texture_descriptor_.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
 
@@ -49,54 +108,67 @@ LightEngine::StaticTexture::StaticTexture(std::shared_ptr<Core> core_ptr, std::s
 	call_result_ = core_ptr->get_device_ptr()->CreateShaderResourceView(texture_ptr_.Get(), &srvd, &texture_srv_ptr_);
 	if (FAILED(call_result_))
 		throw LECoreException("<D3D11 ERROR> <Shader resource view creation failed>", "LETexture.cpp", __LINE__ - 2, call_result_);
+	
+	D3D11_UNORDERED_ACCESS_VIEW_DESC uav_desc = {};
 
-	core_ptr_->get_context_ptr()->GenerateMips(texture_srv_ptr_.Get());
-
-}
-
-LightEngine::Sampler::Sampler(std::shared_ptr<Core> core_ptr, Filtering filtering) : CoreUser(core_ptr){
-	D3D11_SAMPLER_DESC sampler_desc_ = {};
-	sampler_desc_.Filter = (D3D11_FILTER)filtering;
-	sampler_desc_.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-	sampler_desc_.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-	sampler_desc_.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-	sampler_desc_.MaxAnisotropy = D3D11_REQ_MAXANISOTROPY;
-	sampler_desc_.MipLODBias = 0.0f;
-	sampler_desc_.MinLOD = 0.0f;
-	sampler_desc_.MaxLOD = D3D11_REQ_MIP_LEVELS;
-
-	call_result_ = core_ptr_->get_device_ptr()->CreateSamplerState(&sampler_desc_, &sampler_state_ptr_);
+	uav_desc.Buffer.FirstElement = 0;
+	uav_desc.Buffer.Flags = 0;
+	uav_desc.Buffer.NumElements = texture_buffer_.cols * texture_buffer_.rows;
+	uav_desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+	uav_desc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
+	
+	call_result_ = core_ptr_->get_device_ptr()->CreateUnorderedAccessView(texture_ptr_.Get(), &uav_desc, texture_uav_ptr_.GetAddressOf());
 	if (FAILED(call_result_))
-		throw LECoreException("<D3D11 ERROR> <Sampler state creation failed>", "LETexture.cpp", __LINE__ - 2, call_result_);
+		throw LECoreException("<D3D11 ERROR> <UAV creation failed>", "LETexture.cpp", __LINE__ - 2, call_result_);
+		
 }
 
-void LightEngine::Sampler::bind(short slot) const {
-	core_ptr_->get_context_ptr()->PSSetSamplers(slot, 1, sampler_state_ptr_.GetAddressOf());
+LightEngine::StaticTexture::StaticTexture(std::shared_ptr<Core> core_ptr, const std::string& name, int width, int height, float *data) : Texture(core_ptr, name){
+
+	texture_descriptor_.Width = width;
+	texture_descriptor_.Height = height;
+	texture_descriptor_.MipLevels = 1u;  // Do wyjasnienia - wp³yw na SRD
+	texture_descriptor_.ArraySize = 1u;
+	texture_descriptor_.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	texture_descriptor_.SampleDesc.Count = 1u;
+	texture_descriptor_.SampleDesc.Quality = 0u;
+	texture_descriptor_.Usage = D3D11_USAGE_DEFAULT;
+	texture_descriptor_.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_RENDER_TARGET;
+	texture_descriptor_.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
+	texture_descriptor_.CPUAccessFlags = 0;
+
+	static D3D11_SUBRESOURCE_DATA srd;
+	srd.pSysMem = reinterpret_cast<const void*>(data);
+	srd.SysMemPitch = width * 4 * sizeof(float);
+	srd.SysMemSlicePitch = 0;
+
+	call_result_ = core_ptr_->get_device_ptr()->CreateTexture2D(&texture_descriptor_, &srd, &texture_ptr_);
+	if (FAILED(call_result_))
+		throw LECoreException("<D3D11 ERROR> <Texture resource creation failed>", "LETexture.cpp", __LINE__ - 2, call_result_);
+
+	static const D3D11_SHADER_RESOURCE_VIEW_DESC srvd = { 
+		texture_descriptor_.Format,
+		D3D11_SRV_DIMENSION_TEXTURE2D,
+		{0,-1}
+	};
+
+	call_result_ = core_ptr->get_device_ptr()->CreateShaderResourceView(texture_ptr_.Get(), &srvd, &texture_srv_ptr_);
+	if (FAILED(call_result_))
+		throw LECoreException("<D3D11 ERROR> <Shader resource view creation failed>", "LETexture.cpp", __LINE__ - 2, call_result_);
+
+	static D3D11_UNORDERED_ACCESS_VIEW_DESC uav_desc;
+
+	uav_desc.Buffer.FirstElement = 0;
+	uav_desc.Buffer.Flags = 0;
+	uav_desc.Buffer.NumElements = width * height;
+	uav_desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	uav_desc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
+	
+	call_result_ = core_ptr_->get_device_ptr()->CreateUnorderedAccessView(texture_ptr_.Get(), &uav_desc, texture_uav_ptr_.GetAddressOf());
+	if (FAILED(call_result_))
+		throw LECoreException("<D3D11 ERROR> <UAV creation failed>", "LETexture.cpp", __LINE__ - 2, call_result_);
 }
 
-LightEngine::Texture::Texture(std::shared_ptr<Core>& core_ptr, std::string name)
-	: CoreUser(core_ptr),
-	name_(name),
-	binding_slot_(0),
-	texture_descriptor_({0}),
-	texture_ptr_(nullptr),
-	texture_srv_ptr_(nullptr) {}
-
-void LightEngine::Texture::unbind() const {
-	static ID3D11ShaderResourceView* const null_srv = { 0 };
-	core_ptr_->get_context_ptr()->PSSetShaderResources(binding_slot_, 1, &null_srv);
-}
-
-std::string LightEngine::Texture::get_name() const { return name_; }
-
-int LightEngine::Texture::get_width() const { return texture_descriptor_.Width; }
-
-int LightEngine::Texture::get_height() const { return texture_descriptor_.Height; }
-
-void LightEngine::Texture::bind(short slot) {
-	binding_slot_ = slot;
-	core_ptr_->get_context_ptr()->PSSetShaderResources(binding_slot_, 1, texture_srv_ptr_.GetAddressOf());
-}
 
 LightEngine::RenderableTexture::RenderableTexture(std::shared_ptr<Core>& core_ptr, std::string name, int width, int height)
 	: Texture(core_ptr, name){
@@ -180,7 +252,6 @@ LightEngine::RenderableTexture::RenderableTexture(std::shared_ptr<Core>& core_pt
 Microsoft::WRL::ComPtr<ID3D11RenderTargetView> LightEngine::RenderableTexture::get_rtv_ptr() const { return texture_rtv_ptr_; }
 
 Microsoft::WRL::ComPtr<ID3D11DepthStencilView> LightEngine::RenderableTexture::get_dsv_ptr() const { return texture_dsv_ptr_; }
-
 
 void LightEngine::RenderableTexture::clear() const {
 	core_ptr_->get_context_ptr()->ClearDepthStencilView(texture_dsv_ptr_.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0u);

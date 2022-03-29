@@ -65,14 +65,30 @@ int main(int argc, const char **argv) {
 		LightEngine::PixelShader hud_ps(core, shader_directory + L"ViewportHUD_PS.cso");
 		LightEngine::PixelShader shadow_mapping_ps(core, shader_directory + L"ShadowMappingPS.cso");
 		LightEngine::PixelShader mc_gi(core, shader_directory + L"MonteCarloGI.cso");
-		
+		LightEngine::ComputeShader cs_(core, shader_directory + L"MonteCarloGI_CS.cso");
+		LightEngine::StaticTexture texture_a(core, "B:\\CG Projects\\Tekstury\\red.jpg");
+		LightEngine::StaticTexture texture_b(core, "B:\\CG Projects\\Tekstury\\blue.jpg");
+
+
+		static float blank[1000000](0.5);
+		LightEngine::StaticTexture output_texture(core, "CS Out", 500, 500, blank);
+		LightEngine::ShaderResourceManager sr_manager(core);
+
+		cs_.bind();
+		sr_manager.bind_texture_buffer(texture_a, LightEngine::ShaderType::ComputeShader, 2u);
+		sr_manager.bind_texture_buffer(texture_b, LightEngine::ShaderType::ComputeShader, 3u);
+		sr_manager.bind_cs_unordered_access_buffer(output_texture, 0u);
+		cs_.run();
+		sr_manager.unbind_cs_unordered_access_buffer(0u);
+		output_texture.generate_mip_maps();
+		sr_manager.bind_texture_buffer(output_texture, LightEngine::ShaderType::PixelShader, 0u);
 
 		std::shared_ptr<LightEngine::PixelShader> blinn_ps_ptr = std::make_shared<LightEngine::PixelShader>(blinn_ps);
 		std::shared_ptr<LightEngine::PixelShader> phong_ps_ptr = std::make_shared<LightEngine::PixelShader>(phong_ps);
 		std::shared_ptr<LightEngine::PixelShader> gouraud_ps_ptr = std::make_shared<LightEngine::PixelShader>(gouraud_ps);
 		std::shared_ptr<LightEngine::PixelShader> pbr_ps_ptr = std::make_shared<LightEngine::PixelShader>(pbr_ps);
 		std::shared_ptr<LightEngine::PixelShader> mc_gi_ptr = std::make_shared<LightEngine::PixelShader>(mc_gi);
-		
+		//std::shared_ptr<LightEngine::ComputeShader> cs_
 
 
 		LightEngine::FPSCamera fps_camera(core);
@@ -91,6 +107,7 @@ int main(int argc, const char **argv) {
 		LightEngine::Sampler sampler_trilinear(core, LightEngine::Sampler::Filtering::TRILINEAR);
 		LightEngine::Sampler sampler_anisotropic(core, LightEngine::Sampler::Filtering::ANISOTROPIC);
 		LightEngine::RenderableTexture shadow_map(core, "Shadow map", 512, 512);
+		
 		
 		LightEngineUI::Backend::BrowserModel<LightEngine::StaticTexture> texture_browser_model;
 		LightEngineUI::Backend::BrowserModel<LightEngine::Materials::BasicMaterial> bm_browser_model;
@@ -128,7 +145,7 @@ int main(int argc, const char **argv) {
 		LightEngine::Geometry<LightEngine::Vertex3> shadow_map_display(core, shadow_map_display_vertices, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP,"shadow_map_display");
 		LightEngine::Geometry<LightEngine::Vertex3> test_plane(core, test_plane_vtx, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, "test_plane");
 
-		scene.push_back(test_plane);
+		//scene.push_back(test_plane);
 
 		direct_light.set_position(direct_light_position);
 		default_material.assign_vertex_shader(std::make_shared<LightEngine::VertexShader>(vs));
@@ -529,15 +546,17 @@ int main(int argc, const char **argv) {
 				core->clear_frame_buffer(color);
 				
 
-				default_ptr->bind();
+				//default_ptr->bind();
 
-				scene[0].bind_topology();
-				scene[0].bind_vertex_buffer();
-				scene[0].draw(0);	
+				//scene[0].bind_topology();
+				//scene[0].bind_vertex_buffer();
+				//scene[0].draw(0);	
 
-				for (int i = 1; i < scene.size(); i++) {
+				
+
+				for (int i = 0; i < scene.size(); i++) {
 											
-					mc_gi_ptr->bind();
+					default_ptr->bind();
 
 					scene[i].bind_topology();
 					scene[i].bind_vertex_buffer();

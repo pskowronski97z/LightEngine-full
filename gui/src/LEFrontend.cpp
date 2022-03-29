@@ -347,7 +347,7 @@ void LightEngineUI::Frontend::TextureBrowser::render() {
 	if(ImGui::Button("Remove", button_size)){
 		browser_model_ptr_->remove(item_current_idx);
 		names_ = browser_model_ptr_->get_names();
-		item_current_idx = std::max(item_current_idx - 1, 0);
+		item_current_idx = max(item_current_idx - 1, 0);
 	} 
 	ImGui::SameLine();
 	if(ImGui::Button("Select", button_size))
