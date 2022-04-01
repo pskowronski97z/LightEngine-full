@@ -1,5 +1,11 @@
+#pragma comment(lib,"opencv_world450d")
+#include <opencv2/opencv.hpp>
 #include <LEShader.h>
 #include <d3dcompiler.h>
+
+#define FILE_NOT_FOUND 0x80070002
+#define valid_slot(SLOT, MAX_SLOTS) ((SLOT >= 0) && (SLOT <= (MAX_SLOTS - 1)))
+
 
 LightEngine::ConstantBuffer::ConstantBuffer(std::shared_ptr<Core> core_ptr) : CoreUser(core_ptr) {}
 
@@ -122,39 +128,37 @@ void LightEngine::ComputeShader::run() const {
 }
 
 
-LightEngine::ShaderResourceManager::ShaderResourceManager(std::shared_ptr<Core> core_ptr) : CoreUser(core_ptr) {}
+LightEngine::ShaderResourceManager::ShaderResourceManager(const std::shared_ptr<Core> &core_ptr) : CoreUser(core_ptr) {}
 
-bool LightEngine::ShaderResourceManager::slot_valid(uint8_t slot, uint8_t max_slots) { return ((slot >= 0) && (slot <= (max_slots - 1)));};
-
-bool LightEngine::ShaderResourceManager::bind_texture_buffer(Texture& texture, ShaderType shader_type, uint8_t slot) {
-
-	if(!slot_valid(slot, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT))
+bool LightEngine::ShaderResourceManager::bind_texture_buffer(AbstractTexture &texture, const ShaderType shader_type, const uint8_t slot) const {
+	
+	if(!valid_slot(slot, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT))
 		return false;
 
 	switch(shader_type) {
 
 	case ShaderType::VertexShader :
-		core_ptr_->get_context_ptr()->VSSetShaderResources(slot, 1, texture.get_srv_ptr().GetAddressOf());
+		core_ptr_->get_context_ptr()->VSSetShaderResources(slot, 1, texture.srv_ptr_.GetAddressOf());
 		break;
 
 	case ShaderType::GeometryShader :
-		core_ptr_->get_context_ptr()->GSSetShaderResources(slot, 1, texture.get_srv_ptr().GetAddressOf());
+		core_ptr_->get_context_ptr()->GSSetShaderResources(slot, 1, texture.srv_ptr_.GetAddressOf());
 		break;
 
 	case ShaderType::HullShader :
-		core_ptr_->get_context_ptr()->HSSetShaderResources(slot, 1, texture.get_srv_ptr().GetAddressOf());
+		core_ptr_->get_context_ptr()->HSSetShaderResources(slot, 1, texture.srv_ptr_.GetAddressOf());
 		break;
 
 	case ShaderType::DomainShader :
-		core_ptr_->get_context_ptr()->DSSetShaderResources(slot, 1, texture.get_srv_ptr().GetAddressOf());
+		core_ptr_->get_context_ptr()->DSSetShaderResources(slot, 1, texture.srv_ptr_.GetAddressOf());
 		break;
 	
 	case ShaderType::PixelShader :	
-		core_ptr_->get_context_ptr()->PSSetShaderResources(slot, 1, texture.get_srv_ptr().GetAddressOf());
+		core_ptr_->get_context_ptr()->PSSetShaderResources(slot, 1, texture.srv_ptr_.GetAddressOf());
 		break;
 
 	case ShaderType::ComputeShader :
-		core_ptr_->get_context_ptr()->CSSetShaderResources(slot, 1, texture.get_srv_ptr().GetAddressOf());
+		core_ptr_->get_context_ptr()->CSSetShaderResources(slot, 1, texture.srv_ptr_.GetAddressOf());
 		break;
 
 	default:
@@ -162,23 +166,28 @@ bool LightEngine::ShaderResourceManager::bind_texture_buffer(Texture& texture, S
 		break;
 	}
 
+	texture.bound_to_shader_ = shader_type;
+	texture.bound_to_slot_ = slot;
+
 	return true;
 }
 
-bool LightEngine::ShaderResourceManager::bind_cs_unordered_access_buffer(Texture& texture, uint8_t slot) {
+bool LightEngine::ShaderResourceManager::bind_cs_unordered_access_buffer(AbstractTexture &texture, const uint8_t slot) const {
 
-	if(!slot_valid(slot, D3D11_1_UAV_SLOT_COUNT))
+	if(!valid_slot(slot, D3D11_1_UAV_SLOT_COUNT))
 		return false;
 
-	core_ptr_->get_context_ptr()->CSSetUnorderedAccessViews(slot, 1, texture.get_uav_ptr().GetAddressOf(), nullptr);
+	core_ptr_->get_context_ptr()->CSSetUnorderedAccessViews(slot, 1, texture.uav_ptr_.GetAddressOf(), nullptr);
+	texture.bound_to_shader_ = ShaderType::ComputeShader;
+	texture.bound_to_slot_ = slot;
 	return true;
 }
 
-bool LightEngine::ShaderResourceManager::unbind_texture_buffer(ShaderType shader_type, uint8_t slot) {
+bool LightEngine::ShaderResourceManager::unbind_texture_buffer(ShaderType shader_type, uint8_t slot) const {
 	
 	static ID3D11ShaderResourceView* const null_srv = 0;
 
-	if(!slot_valid(slot, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT))
+	if(!valid_slot(slot, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT))
 		return false;
 
 	switch(shader_type) {
@@ -215,14 +224,207 @@ bool LightEngine::ShaderResourceManager::unbind_texture_buffer(ShaderType shader
 	return true;
 }
 
-bool LightEngine::ShaderResourceManager::unbind_cs_unordered_access_buffer(uint8_t slot) {
+bool LightEngine::ShaderResourceManager::unbind_cs_unordered_access_buffer(uint8_t slot) const {
 	
 	static ID3D11UnorderedAccessView* const null_uav = 0;
 
-	if(!slot_valid(slot, D3D11_1_UAV_SLOT_COUNT))
+	if(!valid_slot(slot, D3D11_1_UAV_SLOT_COUNT))
 		return false;
 
 	core_ptr_->get_context_ptr()->CSSetUnorderedAccessViews(slot, 1, &null_uav, nullptr);
 	return true;
 
 }
+
+
+LightEngine::ShaderResource::ShaderResource() : shader_resource_name_(""), bound_to_slot_(255), bound_to_shader_(ShaderType::Null) {}
+
+std::string LightEngine::ShaderResource::get_shader_resource_name() const {	return shader_resource_name_; }
+
+LightEngine::ShaderType LightEngine::ShaderResource::get_bound_shader_type() const { return bound_to_shader_; }
+
+uint8_t LightEngine::ShaderResource::get_bound_slot_number() const { return bound_to_slot_; }
+
+
+LightEngine::AbstractTexture::AbstractTexture() : srv_ptr_(nullptr), uav_ptr_(nullptr) {}
+
+void LightEngine::AbstractTexture::generate_mip_maps() const {
+	core_ptr_->get_context_ptr()->GenerateMips(srv_ptr_.Get());
+}
+
+
+LightEngine::Texture2D::Texture2D(const std::shared_ptr<Core> &core_ptr, const std::string& texture_path) {
+
+	core_ptr_ = core_ptr;
+
+	cv::Mat texture_buffer_ = cv::imread(texture_path);
+	if (texture_buffer_.data == nullptr)
+		throw LECoreException("<ERROR> <Texture cannot be loaded. File is missing, no permission or invalid format.>", "LEShader.cpp", __LINE__ - 2, FILE_NOT_FOUND);
+
+	shader_resource_name_ = "";
+	int path_str_last_char = texture_path.size() - 1;
+	char readen;
+
+	do {
+		readen = texture_path[path_str_last_char];
+		shader_resource_name_.insert(shader_resource_name_.begin(), readen);
+		path_str_last_char--;
+	} while ((texture_path[path_str_last_char] != '\\') && (path_str_last_char != -1));
+
+	cv::Mat converted;
+
+	cv::cvtColor(texture_buffer_, converted, cv::COLOR_BGR2BGRA);
+
+	descriptor_.Width = texture_buffer_.cols;
+	descriptor_.Height = texture_buffer_.rows;
+	descriptor_.MipLevels = 0u;
+	descriptor_.ArraySize = 1u;
+	descriptor_.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+	descriptor_.SampleDesc.Count = 1u;
+	descriptor_.SampleDesc.Quality = 0u;
+	descriptor_.Usage = D3D11_USAGE_DEFAULT;
+	descriptor_.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET | D3D11_BIND_UNORDERED_ACCESS;
+	descriptor_.CPUAccessFlags = 0;
+	descriptor_.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
+
+	call_result_ = core_ptr->get_device_ptr()->CreateTexture2D(&descriptor_, nullptr, &ptr_);
+	if (FAILED(call_result_))
+		throw LECoreException("<D3D11 ERROR> <Texture2D creation failed>", "LEShader.cpp", __LINE__ - 2, call_result_);
+
+	core_ptr->get_context_ptr()->UpdateSubresource(ptr_.Get(), 0u, nullptr, converted.data, texture_buffer_.cols * 4 * sizeof(char), 0);
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC srvd = {};
+	srvd.Format = descriptor_.Format;
+	srvd.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	srvd.Texture2D.MostDetailedMip = 0;
+	srvd.Texture2D.MipLevels = -1;
+
+	call_result_ = core_ptr->get_device_ptr()->CreateShaderResourceView(ptr_.Get(), &srvd, &srv_ptr_);
+	if (FAILED(call_result_))
+		throw LECoreException("<D3D11 ERROR> <Texture2D resource view creation failed>", "LEShader.cpp", __LINE__ - 2, call_result_);
+	
+	D3D11_UNORDERED_ACCESS_VIEW_DESC uav_desc = {};
+
+	uav_desc.Buffer.FirstElement = 0;
+	uav_desc.Buffer.Flags = 0;
+	uav_desc.Buffer.NumElements = texture_buffer_.cols * texture_buffer_.rows;
+	uav_desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+	uav_desc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
+	
+	call_result_ = core_ptr_->get_device_ptr()->CreateUnorderedAccessView(ptr_.Get(), &uav_desc, uav_ptr_.GetAddressOf());
+	if (FAILED(call_result_))
+		throw LECoreException("<D3D11 ERROR> <Texture2D unordered access view creation failed>", "LEShader.cpp", __LINE__ - 2, call_result_);
+
+}
+
+LightEngine::Texture2D::Texture2D(const std::shared_ptr<Core> &core_ptr, const std::string& name, const uint16_t width, const uint16_t height, const float* data) : 
+	width_(width), height_(height) {
+
+	core_ptr_ = core_ptr;
+	shader_resource_name_ = name;
+
+	descriptor_ = {0};
+
+	descriptor_.Width = width_;
+	descriptor_.Height = height_;
+	descriptor_.MipLevels = 0u; 
+	descriptor_.ArraySize = 1u;
+	descriptor_.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	descriptor_.SampleDesc.Count = 1u;
+	descriptor_.SampleDesc.Quality = 0u;
+	descriptor_.Usage = D3D11_USAGE_DEFAULT;
+	descriptor_.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_RENDER_TARGET;
+	descriptor_.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
+	descriptor_.CPUAccessFlags = 0;
+
+	call_result_ = core_ptr_->get_device_ptr()->CreateTexture2D(&descriptor_, nullptr, &ptr_);
+	if (FAILED(call_result_))
+		throw LECoreException("<D3D11 ERROR> <Texture resource creation failed>", "LETexture.cpp", __LINE__ - 2, call_result_);
+
+	core_ptr->get_context_ptr()->UpdateSubresource(ptr_.Get(), 0u, nullptr, data, static_cast<uint32_t>(width_) * 4 * sizeof(float), 0);
+
+	static const D3D11_SHADER_RESOURCE_VIEW_DESC srvd = { 
+		descriptor_.Format,
+		D3D11_SRV_DIMENSION_TEXTURE2D,
+		{0,-1}
+	};
+
+	call_result_ = core_ptr->get_device_ptr()->CreateShaderResourceView(ptr_.Get(), &srvd, &srv_ptr_);
+	if (FAILED(call_result_))
+		throw LECoreException("<D3D11 ERROR> <Shader resource view creation failed>", "LETexture.cpp", __LINE__ - 2, call_result_);
+
+	static D3D11_UNORDERED_ACCESS_VIEW_DESC uav_desc;
+
+	uav_desc.Buffer.FirstElement = 0;
+	uav_desc.Buffer.Flags = 0;
+	uav_desc.Buffer.NumElements = width_ * height_;
+	uav_desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	uav_desc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
+	
+	call_result_ = core_ptr_->get_device_ptr()->CreateUnorderedAccessView(ptr_.Get(), &uav_desc, uav_ptr_.GetAddressOf());
+	if (FAILED(call_result_))
+		throw LECoreException("<D3D11 ERROR> <UAV creation failed>", "LETexture.cpp", __LINE__ - 2, call_result_);
+}
+
+uint16_t LightEngine::Texture2D::get_width() const { return width_; }
+
+uint16_t LightEngine::Texture2D::get_height() const { return height_; }
+
+
+LightEngine::Texture3D::Texture3D(const std::shared_ptr<Core> &core_ptr, const std::string& name, const uint16_t width, const uint16_t height,  const uint16_t depth, const float* data) : 
+	width_(width), height_(height), depth_(depth) {
+
+	core_ptr_ = core_ptr;
+	shader_resource_name_ = name;
+
+	descriptor_ = {0};
+
+	descriptor_.Width = width_;
+	descriptor_.Height = height_;
+	descriptor_.Depth = depth_;
+	descriptor_.MipLevels = 0u; 
+	descriptor_.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	descriptor_.Usage = D3D11_USAGE_DEFAULT;
+	descriptor_.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_RENDER_TARGET ;
+	descriptor_.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
+	descriptor_.CPUAccessFlags = 0;
+
+	call_result_ = core_ptr_->get_device_ptr()->CreateTexture3D(&descriptor_, nullptr, &ptr_);
+	if (FAILED(call_result_))
+		throw LECoreException("<D3D11 ERROR> <Texture resource creation failed>", "LEShader.cpp", __LINE__ - 2, call_result_);
+
+	core_ptr->get_context_ptr()->UpdateSubresource(ptr_.Get(),
+		0u,
+		nullptr,
+		data,
+		static_cast<uint32_t>(width_) * 4 * sizeof(float),
+		static_cast<uint32_t>(width_) * static_cast<uint32_t>(height_) * 4 * sizeof(float));
+
+	static const D3D11_SHADER_RESOURCE_VIEW_DESC srvd = { 
+		descriptor_.Format,
+		D3D11_SRV_DIMENSION_TEXTURE3D,
+		{0,-1}
+	};
+
+	call_result_ = core_ptr->get_device_ptr()->CreateShaderResourceView(ptr_.Get(), &srvd, &srv_ptr_);
+	if (FAILED(call_result_))
+		throw LECoreException("<D3D11 ERROR> <Shader resource view creation failed>", "LEShader.cpp", __LINE__ - 2, call_result_);
+
+	static D3D11_UNORDERED_ACCESS_VIEW_DESC uav_desc;
+
+	uav_desc.Texture3D.FirstWSlice = 0u;
+	uav_desc.Texture3D.MipSlice = 0u;
+	uav_desc.Texture3D.WSize = depth_;
+	uav_desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	uav_desc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE3D;
+	
+	call_result_ = core_ptr_->get_device_ptr()->CreateUnorderedAccessView(ptr_.Get(), &uav_desc, uav_ptr_.GetAddressOf());
+	if (FAILED(call_result_))
+		throw LECoreException("<D3D11 ERROR> <UAV creation failed>", "LEShader.cpp", __LINE__ - 2, call_result_);
+}
+
+uint16_t LightEngine::Texture3D::get_width() const { return width_; }
+
+uint16_t LightEngine::Texture3D::get_height() const { return height_; }
+
+uint16_t LightEngine::Texture3D::get_depth() const { return depth_; }

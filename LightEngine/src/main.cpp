@@ -16,6 +16,25 @@
 #include <LEFrontend.h>
 #include <LEBackend.h>
 
+
+std::vector<float> create_test_texture_3d(int width, int height){
+
+	std::vector<float> result(width*height*12, 0.0f);
+		
+	int indexes = width * height * 4;
+
+	for(int i=0; i < indexes ; i += 4) 
+		result[i] = 1.0f;
+	
+	for(int i=indexes; i < 2*indexes ; i += 4) 
+		result[i + 1] = 1.0f;
+	
+	for(int i=2*indexes; i < 3*indexes ; i += 4) 
+		result[i + 2] = 1.0f;
+	
+	return result;
+}
+
 //Path to a directory where all compiled HLSL shaders (from "shaders" directory) are placed
 constexpr auto COMPILED_SHADERS_DIR = L"B:\\source\\repos\\LightEngine v2\\LightEngine-full\\bin\\x64\\Debug\\compiled shaders\\";
 
@@ -66,12 +85,17 @@ int main(int argc, const char **argv) {
 		LightEngine::PixelShader shadow_mapping_ps(core, shader_directory + L"ShadowMappingPS.cso");
 		LightEngine::PixelShader mc_gi(core, shader_directory + L"MonteCarloGI.cso");
 		LightEngine::ComputeShader cs_(core, shader_directory + L"MonteCarloGI_CS.cso");
-		LightEngine::StaticTexture texture_a(core, "B:\\CG Projects\\Tekstury\\red.jpg");
-		LightEngine::StaticTexture texture_b(core, "B:\\CG Projects\\Tekstury\\blue.jpg");
+		//LightEngine::Texture2D texture_a(core, "B:\\CG Projects\\Tekstury\\PavingStones094_1K-PNG\\PavingStones094_1K_AmbientOcclusion.png");
+		//LightEngine::Texture2D texture_b(core, "B:\\CG Projects\\Tekstury\\blue.jpg");
 
+		static float blank[1000000];
+		std::vector<float> test_1 = create_test_texture_3d(500, 500);
+		std::vector<float> test_2 = create_test_texture_3d(250, 250);
 
-		static float blank[1000000](0.5);
-		LightEngine::StaticTexture output_texture(core, "CS Out", 500, 500, blank);
+		LightEngine::Texture3D texture_a(core, "CS Out", 500, 500, 3, test_1.data());
+		LightEngine::Texture3D texture_b(core, "CS Out", 250, 250, 3, test_2.data());
+
+		LightEngine::Texture2D output_texture(core, "CS Out", 500, 500, blank);
 		LightEngine::ShaderResourceManager sr_manager(core);
 
 		cs_.bind();
@@ -88,7 +112,6 @@ int main(int argc, const char **argv) {
 		std::shared_ptr<LightEngine::PixelShader> gouraud_ps_ptr = std::make_shared<LightEngine::PixelShader>(gouraud_ps);
 		std::shared_ptr<LightEngine::PixelShader> pbr_ps_ptr = std::make_shared<LightEngine::PixelShader>(pbr_ps);
 		std::shared_ptr<LightEngine::PixelShader> mc_gi_ptr = std::make_shared<LightEngine::PixelShader>(mc_gi);
-		//std::shared_ptr<LightEngine::ComputeShader> cs_
 
 
 		LightEngine::FPSCamera fps_camera(core);

@@ -98,18 +98,68 @@ namespace LightEngine {
 		void run() const;
 	};
 
-	class __declspec(dllexport) ShaderResourceManager : private CoreUser {
-	private:
-		bool slot_valid(uint8_t slot, uint8_t max_slots);
+	
+
+	class ShaderResource : public CoreUser {
+	protected:
+		std::string shader_resource_name_;
+		ShaderType bound_to_shader_;
+		uint8_t bound_to_slot_;
+		ShaderResource();
 	public:
-		ShaderResourceManager(std::shared_ptr<Core> core_ptr);
-		bool bind_texture_buffer(Texture &texture, ShaderType shader_type, uint8_t slot);
-		bool bind_cs_unordered_access_buffer(Texture &texture, uint8_t slot);
-		void bind_constant_buffer(uint8_t slot);
-		void bind_sampler_buffer(uint8_t slot);
-		bool unbind_texture_buffer(ShaderType shader_type, uint8_t slot);
-		bool unbind_cs_unordered_access_buffer(uint8_t slot);
-		void unbind_constant_buffer(uint8_t slot);
-		void unbind_sampler_buffer(uint8_t slot);
+		std::string get_shader_resource_name() const;
+		ShaderType get_bound_shader_type() const;
+		uint8_t get_bound_slot_number() const;
 	};
+
+	class _declspec(dllexport) AbstractTexture : public ShaderResource {
+		friend class ShaderResourceManager;
+	protected:
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv_ptr_;
+		Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> uav_ptr_;
+		AbstractTexture();
+	public:
+		void generate_mip_maps() const;
+	};
+
+	class __declspec(dllexport) Texture2D : public AbstractTexture {
+	protected:
+		D3D11_TEXTURE2D_DESC descriptor_;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> ptr_;
+		uint16_t width_;
+		uint16_t height_;
+	public:
+		Texture2D(const std::shared_ptr<Core> &core_ptr, const std::string &texture_path);
+		Texture2D(const std::shared_ptr<Core> &core_ptr, const std::string &name, const uint16_t width, const uint16_t height, const float *data);
+		uint16_t get_width() const;
+		uint16_t get_height() const;
+	};
+
+	class __declspec(dllexport) Texture3D : public AbstractTexture {
+	protected:
+		D3D11_TEXTURE3D_DESC descriptor_;
+		Microsoft::WRL::ComPtr<ID3D11Texture3D> ptr_;
+		uint16_t width_;
+		uint16_t height_;
+		uint16_t depth_;
+	public:
+		Texture3D(const std::shared_ptr<Core> &core_ptr, const std::string &name, const uint16_t width, const uint16_t height, const uint16_t depth, const float *data);
+		uint16_t get_width() const;
+		uint16_t get_height() const;
+		uint16_t get_depth() const;
+	};
+
+	class __declspec(dllexport) ShaderResourceManager : private CoreUser {
+	public:
+		ShaderResourceManager(const std::shared_ptr<Core> &core_ptr);
+		bool bind_texture_buffer(AbstractTexture &texture, const ShaderType shader_type, const uint8_t slot) const;
+		bool bind_cs_unordered_access_buffer(AbstractTexture &texture, const uint8_t slot) const;
+		//void bind_constant_buffer(uint8_t slot);
+		//void bind_sampler_buffer(uint8_t slot);
+		bool unbind_texture_buffer(ShaderType shader_type, uint8_t slot) const;
+		bool unbind_cs_unordered_access_buffer(uint8_t slot) const;
+		//void unbind_constant_buffer(uint8_t slot);
+		//void unbind_sampler_buffer(uint8_t slot);
+	};
+	
 }

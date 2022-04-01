@@ -47,7 +47,8 @@ namespace LightEngine {
 	protected:
 		std::shared_ptr<Core> core_ptr_;
 		HRESULT call_result_;
-		CoreUser(std::shared_ptr<Core> core_ptr) : core_ptr_(core_ptr) {};		
+		CoreUser(const std::shared_ptr<Core> &core_ptr) : core_ptr_(core_ptr) {};		
+		CoreUser();
 	};
 
 }

@@ -287,5 +287,7 @@ Microsoft::WRL::ComPtr<ID3D11Device> LightEngine::Core::get_device_ptr() { retur
 
 Microsoft::WRL::ComPtr<ID3D11DeviceContext> LightEngine::Core::get_context_ptr() { return context_ptr_; }
 
-
-
+LightEngine::CoreUser::CoreUser() {
+	core_ptr_ = nullptr;
+	call_result_ = 0;
+}

@@ -61,7 +61,7 @@ void LightEngine::Texture::bind(short slot) {
 	core_ptr_->get_context_ptr()->CSSetShaderResources(binding_slot_, 1, texture_srv_ptr_.GetAddressOf());
 }
 
-
+// Sprawdziæ czym siê rózni uzywanie tekstury MS a generowanie mip map
 LightEngine::StaticTexture::StaticTexture(std::shared_ptr<Core> core_ptr, std::string texture_path) : Texture(core_ptr, ""){
 	cv::Mat texture_buffer_ = cv::imread(texture_path);
 	if (texture_buffer_.data == nullptr)
@@ -83,8 +83,8 @@ LightEngine::StaticTexture::StaticTexture(std::shared_ptr<Core> core_ptr, std::s
 
 	texture_descriptor_.Width = texture_buffer_.cols;
 	texture_descriptor_.Height = texture_buffer_.rows;
-	texture_descriptor_.MipLevels = 0;
-	texture_descriptor_.ArraySize = 1;
+	texture_descriptor_.MipLevels = 0u;
+	texture_descriptor_.ArraySize = 1u;
 	texture_descriptor_.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
 	texture_descriptor_.SampleDesc.Count = 1u;
 	texture_descriptor_.SampleDesc.Quality = 0u;
@@ -127,7 +127,7 @@ LightEngine::StaticTexture::StaticTexture(std::shared_ptr<Core> core_ptr, const 
 
 	texture_descriptor_.Width = width;
 	texture_descriptor_.Height = height;
-	texture_descriptor_.MipLevels = 1u;  // Do wyjasnienia - wp³yw na SRD
+	texture_descriptor_.MipLevels = 0u;  // Do wyjasnienia - wp³yw na SRD
 	texture_descriptor_.ArraySize = 1u;
 	texture_descriptor_.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
 	texture_descriptor_.SampleDesc.Count = 1u;
@@ -137,14 +137,11 @@ LightEngine::StaticTexture::StaticTexture(std::shared_ptr<Core> core_ptr, const 
 	texture_descriptor_.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
 	texture_descriptor_.CPUAccessFlags = 0;
 
-	static D3D11_SUBRESOURCE_DATA srd;
-	srd.pSysMem = reinterpret_cast<const void*>(data);
-	srd.SysMemPitch = width * 4 * sizeof(float);
-	srd.SysMemSlicePitch = 0;
-
-	call_result_ = core_ptr_->get_device_ptr()->CreateTexture2D(&texture_descriptor_, &srd, &texture_ptr_);
+	call_result_ = core_ptr_->get_device_ptr()->CreateTexture2D(&texture_descriptor_, nullptr, &texture_ptr_);
 	if (FAILED(call_result_))
 		throw LECoreException("<D3D11 ERROR> <Texture resource creation failed>", "LETexture.cpp", __LINE__ - 2, call_result_);
+
+	core_ptr->get_context_ptr()->UpdateSubresource(texture_ptr_.Get(),0u,nullptr, data, width * 4 * sizeof(float), 0);
 
 	static const D3D11_SHADER_RESOURCE_VIEW_DESC srvd = { 
 		texture_descriptor_.Format,
