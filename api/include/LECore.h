@@ -21,11 +21,11 @@ namespace LightEngine {
 		Microsoft::WRL::ComPtr<ID3D11DeviceContext> context_ptr_;
 		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> frame_buffer_rtv_ptr_;
 		Microsoft::WRL::ComPtr<ID3D11DepthStencilView> frame_buffer_dsv_ptr_;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> back_buffer_ptr_;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> depth_texture_ptr_;
 		D3D11_VIEWPORT viewport_;
 		HRESULT call_result_;
 		bool rendering_to_frame_buffer_ = true;
-		void update_depth_stencil_view(short width, short height, ID3D11DepthStencilView **dsv_pptr);
-			
 	public:
 		Core(HWND window_handle_, int viewport_width, int viewport_height);
 		Core(const Core&) = delete;	// deleting copy constructor (optional)
@@ -34,13 +34,13 @@ namespace LightEngine {
 		void clear_frame_buffer(float clear_color[4]) const;
 		void present_frame();
 		void vertex_buffer_setup(Vertex3 *vertex_buffer, int buffer_size);
-		void update_frame_buffer(int new_width, int new_height);
 		void viewport_setup(int x, int y, int width, int height);
 		void render_to_frame_buffer();
 		// All resources bound to frame buffer render target must be released before setting new 
 		void render_to_texture(RenderableTexture &renderable_texture);
 		Microsoft::WRL::ComPtr<ID3D11Device> get_device_ptr();
 		Microsoft::WRL::ComPtr<ID3D11DeviceContext> get_context_ptr();
+		void setup_frame_buffer(const uint16_t width, const uint16_t height, const bool init);
 	};
 
 	class CoreUser {

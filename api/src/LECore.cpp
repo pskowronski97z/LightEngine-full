@@ -5,45 +5,10 @@
 #include <LEException.h>
 #include <d3dcompiler.h>
 
-
-void LightEngine::Core::update_depth_stencil_view(short width, short height, ID3D11DepthStencilView **dsv_pptr) {
-
-	D3D11_TEXTURE2D_DESC depth_texture_desc = {};
-
-	depth_texture_desc.Width = width;
-	depth_texture_desc.Height = height;
-	depth_texture_desc.MipLevels = 1u;
-	depth_texture_desc.ArraySize = 1u;
-	depth_texture_desc.Format = DXGI_FORMAT_D32_FLOAT;
-	depth_texture_desc.SampleDesc.Count = 1u;
-	depth_texture_desc.SampleDesc.Quality = 0u;
-	depth_texture_desc.Usage = D3D11_USAGE_DEFAULT;
-	depth_texture_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-
-	Microsoft::WRL::ComPtr<ID3D11Texture2D> depth_texture;
-
-	call_result_ = device_ptr_->CreateTexture2D(&depth_texture_desc, nullptr, &depth_texture);
-
-	if (FAILED(call_result_))
-		throw LECoreException("<D3D11 ERROR> <Depth texture creation failed> ", "LECore.cpp", __LINE__, call_result_);
-
-	D3D11_DEPTH_STENCIL_VIEW_DESC view_desc = {};
-
-	view_desc.Format = DXGI_FORMAT_D32_FLOAT;
-	view_desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-	view_desc.Texture2D.MipSlice = 0u;
-
-	call_result_ = device_ptr_->CreateDepthStencilView(depth_texture.Get(), &view_desc, dsv_pptr);
-
-	if (FAILED(call_result_))
-		throw LECoreException("<D3D11 ERROR> <Stencil view creation failed> ", "LECore.cpp", __LINE__, call_result_);
-
-}
-
 LightEngine::Core::Core(HWND window_handle_, int viewport_width, int viewport_height) {
 
-	const D3D_FEATURE_LEVEL feature_level = D3D_FEATURE_LEVEL_11_1;
-	DXGI_SWAP_CHAIN_DESC swap_chain_desc;
+	static const D3D_FEATURE_LEVEL feature_level = D3D_FEATURE_LEVEL_11_1;
+	static DXGI_SWAP_CHAIN_DESC swap_chain_desc = { 0 };
 
 	swap_chain_desc.BufferDesc.Height = viewport_height;
 	swap_chain_desc.BufferDesc.Width = viewport_width;
@@ -82,78 +47,81 @@ LightEngine::Core::Core(HWND window_handle_, int viewport_width, int viewport_he
 	if (FAILED(call_result_))
 		throw LECoreException("<D3D11 ERROR> <Device and swap chain creation failed> ", "LECore.cpp", __LINE__, call_result_);
 
+	
+	setup_frame_buffer(viewport_width, viewport_height, true);
+	
+	viewport_setup(0, 0, viewport_width, viewport_height);
+}
 
 
-	// Getting back buffer from swap chain
+void LightEngine::Core::setup_frame_buffer(const uint16_t width, const uint16_t height, const bool init) {
 
-	Microsoft::WRL::ComPtr<ID3D11Resource> back_buffer;
+	if(swap_chain_ptr_ == nullptr)
+		throw LECoreException("<D3D11 ERROR> <Cannot setup a frame buffer. Swap chain is not initialized.> ", "LECore.cpp", __LINE__, call_result_);
 
-	call_result_ = swap_chain_ptr_->GetBuffer(0, __uuidof(ID3D11Resource), &back_buffer);
+	if(!rendering_to_frame_buffer_)
+		throw LECoreException("<D3D11 ERROR> <Cannot update frame buffer in rendering to texture mode.> ", "LECore.cpp", __LINE__, call_result_);
+
+	if (!init) {
+		context_ptr_->OMSetRenderTargets(0u, nullptr, nullptr);
+		frame_buffer_dsv_ptr_->Release();
+		frame_buffer_rtv_ptr_->Release();
+		back_buffer_ptr_->Release();
+		depth_texture_ptr_->Release();
+
+		call_result_ = swap_chain_ptr_->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
+	}
+
+	// Retrieve back buffer from swap chain
+
+	call_result_ = swap_chain_ptr_->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(back_buffer_ptr_.GetAddressOf()));
 
 	if (FAILED(call_result_))
 		throw LECoreException("<D3D11 ERROR> <Cannot obtain an access to the back buffer> ", "LECore.cpp", __LINE__, call_result_);
 
 
+	// Creating render target view with previously extracted texture
 
-	// Using back buffer to create render target to bind to the output-merger
-
-	call_result_ = device_ptr_->CreateRenderTargetView(back_buffer.Get(), nullptr, frame_buffer_rtv_ptr_.GetAddressOf());
+	call_result_ = device_ptr_->CreateRenderTargetView(back_buffer_ptr_.Get(), nullptr, frame_buffer_rtv_ptr_.GetAddressOf());
 
 	if (FAILED(call_result_))
 		throw LECoreException("<D3D11 ERROR> <Render target creation failed> ", "LECore.cpp", __LINE__, call_result_);
 
-	update_depth_stencil_view(viewport_width, viewport_height, &frame_buffer_dsv_ptr_);
-	
-	//shadow_map_rtv_init(shadow_map_res_width, shadow_map_res_height);
-	//update_depth_stencil_view(shadow_map_res_width, shadow_map_res_height, &shadow_map_dsv_ptr_);
-	
+	// Creating depth texture
 
-	context_ptr_->OMSetRenderTargets(1u, frame_buffer_rtv_ptr_.GetAddressOf(), frame_buffer_dsv_ptr_.Get());
+	static D3D11_TEXTURE2D_DESC depth_texture_desc = { 0 };
 
-	//shadow_map_rtv_init(viewport_width, viewport_height);
+	depth_texture_desc.Width = width;
+	depth_texture_desc.Height = height;
+	depth_texture_desc.MipLevels = 1u;
+	depth_texture_desc.ArraySize = 1u;
+	depth_texture_desc.Format = DXGI_FORMAT_D32_FLOAT;
+	depth_texture_desc.SampleDesc.Count = 1u;
+	depth_texture_desc.SampleDesc.Quality = 0u;
+	depth_texture_desc.Usage = D3D11_USAGE_DEFAULT;
+	depth_texture_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
 
-	// Depth state (Settings of depth testing)
-
-	/*D3D11_DEPTH_STENCIL_DESC dsDesc;
-
-	{
-		// Depth test parameters
-		dsDesc.DepthEnable = true;
-		dsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-		dsDesc.DepthFunc = D3D11_COMPARISON_LESS;
-
-		// Stencil test parameters
-		dsDesc.StencilEnable = true;
-		dsDesc.StencilReadMask = 0xFF;
-		dsDesc.StencilWriteMask = 0xFF;
-
-		// Stencil operations if pixel is front-facing
-		dsDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-		dsDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
-		dsDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
-		dsDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-
-		// Stencil operations if pixel is back-facing
-		dsDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-		dsDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
-		dsDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
-		dsDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-	}
-
-	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> depth_stencil_state;
-
-	call_result_ = device_ptr_->CreateDepthStencilState(&dsDesc, &depth_stencil_state);
+	call_result_ = device_ptr_->CreateTexture2D(&depth_texture_desc, nullptr, depth_texture_ptr_.GetAddressOf());
 
 	if (FAILED(call_result_))
-		throw LECoreException("<D3D11 ERROR> <Stencil state creation failed> ", "LECore.cpp",__LINE__, call_result_);
+		throw LECoreException("<D3D11 ERROR> <Depth texture creation failed> ", "LECore.cpp", __LINE__, call_result_);
 
-	context_ptr_->OMSetDepthStencilState(depth_stencil_state.Get(),1u);*/
+	static D3D11_DEPTH_STENCIL_VIEW_DESC view_desc = {};
 
-	//context_ptr_->OMSetRenderTargets(1u,back_buffer_rtv_ptr_.GetAddressOf(),depth_view_ptr_.Get());
+	view_desc.Format = DXGI_FORMAT_D32_FLOAT;
+	view_desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+	view_desc.Texture2D.MipSlice = 0u;
 
-	// Viewport set up
+	// Creating depth stencil view using previously created texture
 
-	viewport_setup(0, 0, viewport_width, viewport_height);
+	call_result_ = device_ptr_->CreateDepthStencilView(depth_texture_ptr_.Get(), &view_desc, frame_buffer_dsv_ptr_.GetAddressOf());
+
+	if (FAILED(call_result_))
+		throw LECoreException("<D3D11 ERROR> <Stencil view creation failed> ", "LECore.cpp", __LINE__, call_result_);
+
+	// Binding required "frame buffer connected" views to output merger 
+
+	context_ptr_->OMSetRenderTargets(1u, frame_buffer_rtv_ptr_.GetAddressOf(), frame_buffer_dsv_ptr_.Get());
 
 }
 
@@ -188,55 +156,6 @@ void LightEngine::Core::vertex_buffer_setup(Vertex3* vertex_buffer, int buffer_s
 	UINT offset = 0;
 
 	context_ptr_->IASetVertexBuffers(0, 1, buffer.GetAddressOf(), &stride, &offset);
-}
-
-void LightEngine::Core::update_frame_buffer(int new_width, int new_height) {
-
-	if (rendering_to_frame_buffer_) {
-		context_ptr_->OMSetRenderTargets(0, 0, 0);
-
-		frame_buffer_rtv_ptr_->Release();
-
-		call_result_ = swap_chain_ptr_->ResizeBuffers(0, new_width, new_height, DXGI_FORMAT_UNKNOWN, 0);
-
-		if (FAILED(call_result_))
-			throw LECoreException("<D3D11 ERROR> <Buffers resizing failed>", "LECore.cpp", __LINE__, call_result_);
-
-		Microsoft::WRL::ComPtr<ID3D11Resource> buffer;
-
-		call_result_ = swap_chain_ptr_->GetBuffer(0, __uuidof(ID3D11Resource), &buffer);
-		if (FAILED(call_result_))
-			throw LECoreException("<D3D11 ERROR> <Cannot obtain an access to the back buffer>", "LECore.cpp", __LINE__, call_result_);
-
-		call_result_ = device_ptr_->CreateRenderTargetView(buffer.Get(), NULL, &frame_buffer_rtv_ptr_);
-		if (FAILED(call_result_))
-			throw LECoreException("<D3D11 ERROR> <Render target creation failed>", "LECore.cpp", __LINE__, call_result_);
-
-
-		update_depth_stencil_view(new_width, new_height, &frame_buffer_dsv_ptr_);
-
-		context_ptr_->OMSetRenderTargets(1u, frame_buffer_rtv_ptr_.GetAddressOf(), frame_buffer_dsv_ptr_.Get());
-
-
-
-
-
-	}
-	else
-		std::cout<<"<LOG> <update_frame_buffer(...)> Cannot update frame buffer in rendering to texture mode"<<std::endl;
-
-	/*
-	static ID3D11ShaderResourceView *const null_srv = {0};
-
-	if(rendering_to_frame_buffer_){
-		context_ptr_->OMSetRenderTargets(1u, frame_buffer_rtv_ptr_.GetAddressOf(), frame_buffer_dsv_ptr_.Get());
-		context_ptr_->PSSetShaderResources(5, 1, shadow_map_srv_ptr_.GetAddressOf());
-	}
-	else {
-		context_ptr_->PSSetShaderResources(5, 1, &null_srv);
-		shadow_map_rtv_init(new_width, new_height);
-		context_ptr_->OMSetRenderTargets(1u, shadow_map_rtv_ptr_.GetAddressOf(), shadow_map_dsv_ptr_.Get());
-	*/
 }
 
 void LightEngine::Core::render_to_frame_buffer() {

@@ -232,7 +232,7 @@ int main(int argc, const char **argv) {
 				if(window.was_resized()) {
 				
 					std::cout<<window.get_width()<<" x "<<window.get_height()<<std::endl;
-					core->update_frame_buffer(window.get_width(),window.get_height());
+					core->setup_frame_buffer(window.get_width(),window.get_height(), false);
 					update_viewport = true;
 
 				}
@@ -247,9 +247,9 @@ int main(int argc, const char **argv) {
 								std::string path = AppWindow::open_file_dialog(model_file_filter, model_file_filter_size);
 								if (path != "") {
 									std::vector<LightEngine::Geometry<LightEngine::Vertex3>> object_set = LightEngine::Geometry<LightEngine::Vertex3>::load_from_obj(core, path);
-									for(auto &object : object_set) {
+									for (auto& object : object_set) {
 										scene.push_back(object);
-									}							
+									}
 								}
 							}
 							ImGui::EndMenu();					
