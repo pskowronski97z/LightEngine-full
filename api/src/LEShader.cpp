@@ -123,8 +123,9 @@ void LightEngine::ComputeShader::bind() const {
 	core_ptr_->get_context_ptr()->CSSetShader(shader_ptr_.Get(), NULL, 0);
 }
 
-void LightEngine::ComputeShader::run() const {
-	core_ptr_->get_context_ptr()->Dispatch(500, 500, 1);
+void LightEngine::ComputeShader::run(uint16_t x_groups_count, uint16_t y_groups_count, uint16_t z_groups_count) const {
+	core_ptr_->get_context_ptr()->Dispatch(x_groups_count, y_groups_count, z_groups_count);
+	
 }
 
 

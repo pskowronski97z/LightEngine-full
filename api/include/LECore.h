@@ -21,6 +21,7 @@ namespace LightEngine {
 		Microsoft::WRL::ComPtr<ID3D11DeviceContext> context_ptr_;
 		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> frame_buffer_rtv_ptr_;
 		Microsoft::WRL::ComPtr<ID3D11DepthStencilView> frame_buffer_dsv_ptr_;
+		Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> frame_buffer_uav_ptr_;
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> back_buffer_ptr_;
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> depth_texture_ptr_;
 		D3D11_VIEWPORT viewport_;
@@ -41,6 +42,8 @@ namespace LightEngine {
 		Microsoft::WRL::ComPtr<ID3D11Device> get_device_ptr();
 		Microsoft::WRL::ComPtr<ID3D11DeviceContext> get_context_ptr();
 		void setup_frame_buffer(const uint16_t width, const uint16_t height, const bool init);
+		void cs_bind_frame_buffer(const uint16_t slot) const;
+		void cs_unbind_frame_buffer(const uint16_t slot) const;
 	};
 
 	class CoreUser {

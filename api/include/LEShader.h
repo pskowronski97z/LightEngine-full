@@ -95,7 +95,7 @@ namespace LightEngine {
 	public:
 		ComputeShader(std::shared_ptr<Core> core_ptr, std::wstring compiled_shader_path);
 		void bind() const override;
-		void run() const;
+		void run(uint16_t x_groups_count, uint16_t y_groups_count, uint16_t z_groups_count) const;
 	};
 
 	

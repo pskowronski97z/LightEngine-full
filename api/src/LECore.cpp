@@ -21,7 +21,7 @@ LightEngine::Core::Core(HWND window_handle_, int viewport_width, int viewport_he
 	swap_chain_desc.SampleDesc.Count = 1u;
 	swap_chain_desc.SampleDesc.Quality = 0u;
 
-	swap_chain_desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	swap_chain_desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_UNORDERED_ACCESS | DXGI_USAGE_SHADER_INPUT;
 	swap_chain_desc.BufferCount = 1;
 	swap_chain_desc.OutputWindow = window_handle_;
 	swap_chain_desc.Windowed = true;
@@ -63,11 +63,16 @@ void LightEngine::Core::setup_frame_buffer(const uint16_t width, const uint16_t 
 		throw LECoreException("<D3D11 ERROR> <Cannot update frame buffer in rendering to texture mode.> ", "LECore.cpp", __LINE__, call_result_);
 
 	if (!init) {
+
+		static ID3D11UnorderedAccessView *const null_uav_ptr = {0};
+
 		context_ptr_->OMSetRenderTargets(0u, nullptr, nullptr);
+		context_ptr_->CSSetUnorderedAccessViews(0u, 1u, &null_uav_ptr, nullptr);
 		frame_buffer_dsv_ptr_->Release();
 		frame_buffer_rtv_ptr_->Release();
 		back_buffer_ptr_->Release();
 		depth_texture_ptr_->Release();
+		frame_buffer_uav_ptr_->Release();
 
 		call_result_ = swap_chain_ptr_->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
 	}
@@ -119,10 +124,35 @@ void LightEngine::Core::setup_frame_buffer(const uint16_t width, const uint16_t 
 	if (FAILED(call_result_))
 		throw LECoreException("<D3D11 ERROR> <Stencil view creation failed> ", "LECore.cpp", __LINE__, call_result_);
 
+
+	// Creating unordered access view
+
+	static D3D11_UNORDERED_ACCESS_VIEW_DESC uav_desc = {};
+
+	uav_desc.Texture2D.MipSlice = 0;
+	uav_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	uav_desc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
+
+	call_result_ = device_ptr_->CreateUnorderedAccessView(back_buffer_ptr_.Get(), &uav_desc, frame_buffer_uav_ptr_.GetAddressOf());
+
+	if (FAILED(call_result_))
+		throw LECoreException("<D3D11 ERROR> <Unordered access view creation failed> ", "LECore.cpp", __LINE__, call_result_);
+
 	// Binding required "frame buffer connected" views to output merger 
 
 	context_ptr_->OMSetRenderTargets(1u, frame_buffer_rtv_ptr_.GetAddressOf(), frame_buffer_dsv_ptr_.Get());
 
+}
+
+void LightEngine::Core::cs_bind_frame_buffer(const uint16_t slot) const {
+	context_ptr_->OMSetRenderTargets(0u, nullptr, nullptr);
+	context_ptr_->CSSetUnorderedAccessViews(slot, 1u, frame_buffer_uav_ptr_.GetAddressOf(), nullptr);
+}
+
+void LightEngine::Core::cs_unbind_frame_buffer(const uint16_t slot) const{
+	static ID3D11UnorderedAccessView *const null_uav_ptr = {0};
+	context_ptr_->CSSetUnorderedAccessViews(slot, 1u, &null_uav_ptr, nullptr);
+	context_ptr_->OMSetRenderTargets(1u, frame_buffer_rtv_ptr_.GetAddressOf(), frame_buffer_dsv_ptr_.Get());
 }
 
 void LightEngine::Core::present_frame() {

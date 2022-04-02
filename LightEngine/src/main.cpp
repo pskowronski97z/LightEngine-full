@@ -46,7 +46,7 @@ int main(int argc, const char **argv) {
 	window.set_style(AppWindow::Style::SIZEABLE);
 	window.set_icon("LE.ico");
 
-	float color[4]{0.15,0.15,0.15};
+	float color[4]{0.0,0.0,0.0};
 	MSG msg = { 0 };
 
 	window.show_window();
@@ -98,14 +98,13 @@ int main(int argc, const char **argv) {
 		LightEngine::Texture2D output_texture(core, "CS Out", 500, 500, blank);
 		LightEngine::ShaderResourceManager sr_manager(core);
 
-		cs_.bind();
-		sr_manager.bind_texture_buffer(texture_a, LightEngine::ShaderType::ComputeShader, 2u);
-		sr_manager.bind_texture_buffer(texture_b, LightEngine::ShaderType::ComputeShader, 3u);
-		sr_manager.bind_cs_unordered_access_buffer(output_texture, 0u);
-		cs_.run();
-		sr_manager.unbind_cs_unordered_access_buffer(0u);
-		output_texture.generate_mip_maps();
-		sr_manager.bind_texture_buffer(output_texture, LightEngine::ShaderType::PixelShader, 0u);
+		//sr_manager.bind_texture_buffer(texture_a, LightEngine::ShaderType::ComputeShader, 2u);
+		//sr_manager.bind_texture_buffer(texture_b, LightEngine::ShaderType::ComputeShader, 3u);
+		//sr_manager.bind_cs_unordered_access_buffer(output_texture, 0u);
+		//cs_.run();
+		//sr_manager.unbind_cs_unordered_access_buffer(0u);
+		//output_texture.generate_mip_maps();
+		//sr_manager.bind_texture_buffer(output_texture, LightEngine::ShaderType::PixelShader, 0u);
 
 		std::shared_ptr<LightEngine::PixelShader> blinn_ps_ptr = std::make_shared<LightEngine::PixelShader>(blinn_ps);
 		std::shared_ptr<LightEngine::PixelShader> phong_ps_ptr = std::make_shared<LightEngine::PixelShader>(phong_ps);
@@ -214,7 +213,7 @@ int main(int argc, const char **argv) {
 		int vp_width = 0;
 		int vp_height = 0;
 		
-
+		
 		while (WM_QUIT != msg.message) {
 			
 			if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
@@ -567,7 +566,6 @@ int main(int argc, const char **argv) {
 				}
 
 				core->clear_frame_buffer(color);
-				
 
 				//default_ptr->bind();
 
@@ -585,7 +583,13 @@ int main(int argc, const char **argv) {
 					scene[i].bind_vertex_buffer();
 
 					scene[i].draw(0);			
-				}
+				}			
+
+				core->cs_bind_frame_buffer(0u);
+				cs_.bind();
+				cs_.run(window.get_width(), window.get_height(), 1u);
+				core->cs_unbind_frame_buffer(0u);
+
 
 				hud_vs.bind();
 				hud_ps.bind();
@@ -595,9 +599,10 @@ int main(int argc, const char **argv) {
 				viewport_border.draw(0);
 
 
-				ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+				ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());				
 				
 				core->present_frame();			
+				
 			}						
 		}
 	}
