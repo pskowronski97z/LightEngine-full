@@ -247,7 +247,7 @@ LightEngine::ShaderType LightEngine::ShaderResource::get_bound_shader_type() con
 uint8_t LightEngine::ShaderResource::get_bound_slot_number() const { return bound_to_slot_; }
 
 
-LightEngine::AbstractTexture::AbstractTexture() : srv_ptr_(nullptr), uav_ptr_(nullptr) {}
+LightEngine::AbstractTexture::AbstractTexture() : srv_ptr_(nullptr), uav_ptr_(nullptr), rtv_ptr_(nullptr) {}
 
 void LightEngine::AbstractTexture::generate_mip_maps() const {
 	core_ptr_->get_context_ptr()->GenerateMips(srv_ptr_.Get());
@@ -316,6 +316,10 @@ LightEngine::Texture2D::Texture2D(const std::shared_ptr<Core> &core_ptr, const s
 	if (FAILED(call_result_))
 		throw LECoreException("<D3D11 ERROR> <Texture2D unordered access view creation failed>", "LEShader.cpp", __LINE__ - 2, call_result_);
 
+	call_result_ = core_ptr_->get_device_ptr()->CreateRenderTargetView(ptr_.Get(), nullptr, rtv_ptr_.GetAddressOf());
+	if (FAILED(call_result_))
+		throw LECoreException("<D3D11 ERROR> <Texture2D render target view creation failed>", "LEShader.cpp", __LINE__ - 2, call_result_);
+
 }
 
 LightEngine::Texture2D::Texture2D(const std::shared_ptr<Core> &core_ptr, const std::string& name, const uint16_t width, const uint16_t height, const float* data) : 
@@ -340,7 +344,7 @@ LightEngine::Texture2D::Texture2D(const std::shared_ptr<Core> &core_ptr, const s
 
 	call_result_ = core_ptr_->get_device_ptr()->CreateTexture2D(&descriptor_, nullptr, &ptr_);
 	if (FAILED(call_result_))
-		throw LECoreException("<D3D11 ERROR> <Texture resource creation failed>", "LETexture.cpp", __LINE__ - 2, call_result_);
+		throw LECoreException("<D3D11 ERROR> <Texture2D creation failed>", "LETexture.cpp", __LINE__ - 2, call_result_);
 
 	core_ptr->get_context_ptr()->UpdateSubresource(ptr_.Get(), 0u, nullptr, data, static_cast<uint32_t>(width_) * 4 * sizeof(float), 0);
 
@@ -352,7 +356,7 @@ LightEngine::Texture2D::Texture2D(const std::shared_ptr<Core> &core_ptr, const s
 
 	call_result_ = core_ptr->get_device_ptr()->CreateShaderResourceView(ptr_.Get(), &srvd, &srv_ptr_);
 	if (FAILED(call_result_))
-		throw LECoreException("<D3D11 ERROR> <Shader resource view creation failed>", "LETexture.cpp", __LINE__ - 2, call_result_);
+		throw LECoreException("<D3D11 ERROR> <Texture2D resource view creation failed>", "LETexture.cpp", __LINE__ - 2, call_result_);
 
 	static D3D11_UNORDERED_ACCESS_VIEW_DESC uav_desc;
 
@@ -364,7 +368,66 @@ LightEngine::Texture2D::Texture2D(const std::shared_ptr<Core> &core_ptr, const s
 	
 	call_result_ = core_ptr_->get_device_ptr()->CreateUnorderedAccessView(ptr_.Get(), &uav_desc, uav_ptr_.GetAddressOf());
 	if (FAILED(call_result_))
-		throw LECoreException("<D3D11 ERROR> <UAV creation failed>", "LETexture.cpp", __LINE__ - 2, call_result_);
+		throw LECoreException("<D3D11 ERROR> <Texture2D unordered access view creation failed>", "LETexture.cpp", __LINE__ - 2, call_result_);
+
+	call_result_ = core_ptr_->get_device_ptr()->CreateRenderTargetView(ptr_.Get(), nullptr, rtv_ptr_.GetAddressOf());
+	if (FAILED(call_result_))
+		throw LECoreException("<D3D11 ERROR> <Texture2D render target view creation failed>", "LEShader.cpp", __LINE__ - 2, call_result_);
+
+}
+
+LightEngine::Texture2D LightEngine::Texture2D::store_geometry(const std::shared_ptr<Core>& core_ptr, const std::vector<Vertex3>& vertices) {
+
+	static std::vector<float> processed_data;
+	const uint32_t vertices_count = vertices.size();
+	const uint32_t row_width = vertices_count * 4;
+
+	processed_data.resize( row_width * 6, 0.0);
+
+	const uint32_t texture_coords_row_index = 2 * row_width;
+	const uint32_t normal_vector_row_index = 3 * row_width;
+	const uint32_t tangent_vector_row_index = 4 * row_width;
+	const uint32_t bitangent_vector_row_index = 5 * row_width;
+
+	uint32_t itr = 0;
+
+	for (auto& vertex : vertices) {
+
+		processed_data.at(itr) = vertex.position_.x;
+		processed_data.at(itr + 1) = vertex.position_.y;
+		processed_data.at(itr + 2) = vertex.position_.z;
+		processed_data.at(itr + 3) = 0.0;
+
+		processed_data.at(row_width + itr) = vertex.color_.x;
+		processed_data.at(row_width + itr + 1) = vertex.color_.y;
+		processed_data.at(row_width + itr + 2) = vertex.color_.z;
+		processed_data.at(row_width + itr + 3) = 0.0;
+
+		processed_data.at(texture_coords_row_index  + itr) = vertex.texcoords_.x;
+		processed_data.at(texture_coords_row_index  + itr + 1) = vertex.texcoords_.y;
+		processed_data.at(texture_coords_row_index  + itr + 2) = vertex.texcoords_.z;
+		processed_data.at(texture_coords_row_index  + itr + 3) = 0.0;
+
+		processed_data.at(normal_vector_row_index  + itr) = vertex.normal_.x;
+		processed_data.at(normal_vector_row_index  + itr + 1) = vertex.normal_.y;
+		processed_data.at(normal_vector_row_index  + itr + 2) = vertex.normal_.z;
+		processed_data.at(normal_vector_row_index  + itr + 3) = 0.0;
+
+		processed_data.at(tangent_vector_row_index  + itr) = vertex.tangent_.x;
+		processed_data.at(tangent_vector_row_index  + itr + 1) = vertex.tangent_.y;
+		processed_data.at(tangent_vector_row_index  + itr + 2) = vertex.tangent_.z;
+		processed_data.at(tangent_vector_row_index  + itr + 3) = 0.0;
+
+		processed_data.at(bitangent_vector_row_index  + itr) = vertex.bitangent_.x;
+		processed_data.at(bitangent_vector_row_index  + itr + 1) = vertex.bitangent_.y;
+		processed_data.at(bitangent_vector_row_index  + itr + 2) = vertex.bitangent_.z;
+		processed_data.at(bitangent_vector_row_index  + itr + 3) = 0.0;
+
+		itr += 4;
+	}
+
+	return Texture2D(core_ptr, "Geometry data", vertices_count, 6u, processed_data.data());
+
 }
 
 uint16_t LightEngine::Texture2D::get_width() const { return width_; }

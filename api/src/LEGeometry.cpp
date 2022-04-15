@@ -1,7 +1,6 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
 #include <LEGeometry.h>
-#include <LEException.h>
 #include <d3d11.h>
 #include <iostream>
 
@@ -35,6 +34,11 @@ LightEngine::Geometry<T>::Geometry(std::shared_ptr<Core> core_ptr, std::vector<T
 
 	if(FAILED(call_result_))
 		throw LECoreException("<D3D11 ERROR> <Vertex buffer creation failed> ", "LEGeometry.cpp",__LINE__, call_result_);
+}
+
+template<class T>
+const std::vector<T>& LightEngine::Geometry<T>::get_vertices_vector() const {
+	return vertices_vector_;
 }
 
 template<class T>

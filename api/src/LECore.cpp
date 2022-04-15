@@ -1,13 +1,14 @@
 #pragma comment(lib,"d3d11")
 #pragma comment(lib,"D3Dcompiler")
 #include <iostream>
-#include <LETexture.h>
-#include <LEException.h>
+//#include <LETexture.h>
+//#include <LEException.h>
+#include <LEShader.h>
 #include <d3dcompiler.h>
 
 LightEngine::Core::Core(HWND window_handle_, int viewport_width, int viewport_height) {
 
-	static const D3D_FEATURE_LEVEL feature_level = D3D_FEATURE_LEVEL_11_1;
+	static const D3D_FEATURE_LEVEL feature_level = D3D_FEATURE_LEVEL_11_0;
 	static DXGI_SWAP_CHAIN_DESC swap_chain_desc = { 0 };
 
 	swap_chain_desc.BufferDesc.Height = viewport_height;
@@ -47,9 +48,10 @@ LightEngine::Core::Core(HWND window_handle_, int viewport_width, int viewport_he
 	if (FAILED(call_result_))
 		throw LECoreException("<D3D11 ERROR> <Device and swap chain creation failed> ", "LECore.cpp", __LINE__, call_result_);
 
-	
+	clear_textures_to_render();
 	setup_frame_buffer(viewport_width, viewport_height, true);
-	
+	render_to_frame_buffer();
+
 	viewport_setup(0, 0, viewport_width, viewport_height);
 }
 
@@ -65,8 +67,7 @@ void LightEngine::Core::setup_frame_buffer(const uint16_t width, const uint16_t 
 	if (!init) {
 
 		static ID3D11UnorderedAccessView *const null_uav_ptr = {0};
-
-		context_ptr_->OMSetRenderTargets(0u, nullptr, nullptr);
+		release_render_targets();
 		context_ptr_->CSSetUnorderedAccessViews(0u, 1u, &null_uav_ptr, nullptr);
 		frame_buffer_dsv_ptr_->Release();
 		frame_buffer_rtv_ptr_->Release();
@@ -140,19 +141,18 @@ void LightEngine::Core::setup_frame_buffer(const uint16_t width, const uint16_t 
 
 	// Binding required "frame buffer connected" views to output merger 
 
-	context_ptr_->OMSetRenderTargets(1u, frame_buffer_rtv_ptr_.GetAddressOf(), frame_buffer_dsv_ptr_.Get());
+	//context_ptr_->OMSetRenderTargets(1u, frame_buffer_rtv_ptr_.GetAddressOf(), frame_buffer_dsv_ptr_.Get());
 
 }
 
-void LightEngine::Core::cs_bind_frame_buffer(const uint16_t slot) const {
-	context_ptr_->OMSetRenderTargets(0u, nullptr, nullptr);
+void LightEngine::Core::cs_bind_frame_buffer(const uint16_t slot) {
+	release_render_targets();
 	context_ptr_->CSSetUnorderedAccessViews(slot, 1u, frame_buffer_uav_ptr_.GetAddressOf(), nullptr);
 }
 
-void LightEngine::Core::cs_unbind_frame_buffer(const uint16_t slot) const{
+void LightEngine::Core::cs_unbind_frame_buffer(const uint16_t slot) {
 	static ID3D11UnorderedAccessView *const null_uav_ptr = {0};
 	context_ptr_->CSSetUnorderedAccessViews(slot, 1u, &null_uav_ptr, nullptr);
-	context_ptr_->OMSetRenderTargets(1u, frame_buffer_rtv_ptr_.GetAddressOf(), frame_buffer_dsv_ptr_.Get());
 }
 
 void LightEngine::Core::present_frame() {
@@ -191,9 +191,9 @@ void LightEngine::Core::vertex_buffer_setup(Vertex3* vertex_buffer, int buffer_s
 void LightEngine::Core::render_to_frame_buffer() {
 	rendering_to_frame_buffer_ = true;
 	context_ptr_->OMSetRenderTargets(1u, frame_buffer_rtv_ptr_.GetAddressOf(), frame_buffer_dsv_ptr_.Get());
-	context_ptr_->RSSetViewports(1u, &viewport_);
+	//context_ptr_->RSSetViewports(1u, &viewport_);
 }
-
+/*
 void LightEngine::Core::render_to_texture(RenderableTexture& renderable_texture) {
 	rendering_to_frame_buffer_ = false;
 
@@ -208,7 +208,7 @@ void LightEngine::Core::render_to_texture(RenderableTexture& renderable_texture)
 	context_ptr_->RSSetViewports(1, &texture_rendering_viewport);
 	context_ptr_->OMSetRenderTargets(1u, renderable_texture.get_rtv_ptr().GetAddressOf(), renderable_texture.get_dsv_ptr().Get());
 }
-
+*/
 void LightEngine::Core::viewport_setup(int x, int y, int width, int height) {
 	
 	viewport_.Width = width;
@@ -226,10 +226,38 @@ void LightEngine::Core::clear_frame_buffer(float clear_color[4]) const {
 	context_ptr_->ClearDepthStencilView(frame_buffer_dsv_ptr_.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0u);
 }
 
+void LightEngine::Core::add_texture_to_render(AbstractTexture &texture, uint8_t slot) {
+	render_targets[slot] = texture.rtv_ptr_.Get();
+}
+
+void LightEngine::Core::clear_textures_to_render() {
+	static ID3D11RenderTargetView* const null_rtv = { 0 };
+
+	for (int i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
+		render_targets[i] = null_rtv;
+}
+
+void LightEngine::Core::release_render_targets() {
+	context_ptr_->OMSetRenderTargets(0u, nullptr, nullptr);
+}
+
+void LightEngine::Core::render_to_textures() {
+	context_ptr_->OMSetRenderTargets(D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT, render_targets, frame_buffer_dsv_ptr_.Get());
+}
+
 void LightEngine::Core::clear_frame_buffer(float r, float g, float b, float a) const {
 	static float color[] = { r, g, b, a };
 	context_ptr_->ClearRenderTargetView(frame_buffer_rtv_ptr_.Get(), color);
 	context_ptr_->ClearDepthStencilView(frame_buffer_dsv_ptr_.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0u);
+}
+
+void LightEngine::Core::flush_render_targets() const {
+
+	static const float clear_values[4] = { 0 };
+
+	for (int i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
+		if(render_targets[i] != nullptr)
+			context_ptr_->ClearRenderTargetView(render_targets[i], clear_values);
 }
 
 Microsoft::WRL::ComPtr<ID3D11Device> LightEngine::Core::get_device_ptr() { return device_ptr_; }

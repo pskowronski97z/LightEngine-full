@@ -1,8 +1,7 @@
 #pragma once
 #pragma comment (lib, "tinyobjloader")
 #include <LECamera.h>
-#include <wrl.h>
-#include <LEData.h>
+#include <LEShader.h>
 
 namespace LightEngine {
 
@@ -26,6 +25,9 @@ namespace LightEngine {
 	public:
 		static std::vector<Geometry<T>> load_from_obj(std::shared_ptr<Core> core_ptr, std::string filename);
 		Geometry(std::shared_ptr<Core> core_ptr, std::vector<T> vertices, D3D11_PRIMITIVE_TOPOLOGY topology, std::string name);
+		// This method stores triangles using three textures. 
+		//void to_texture(Texture2D &v0_s, Texture2D &v1_s, Texture2D &v2_s);
+		const std::vector<T>& get_vertices_vector() const;
 		void set_indices(std::vector<unsigned int> indices);
 		inline void bind_vertex_buffer();
 		inline void bind_index_buffer();

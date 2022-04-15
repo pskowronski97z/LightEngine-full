@@ -16,6 +16,8 @@
 #include <LEFrontend.h>
 #include <LEBackend.h>
 
+constexpr int res_w = 1280;
+constexpr int res_h = 720;
 
 std::vector<float> create_test_texture_3d(int width, int height){
 
@@ -40,10 +42,10 @@ constexpr auto COMPILED_SHADERS_DIR = L"B:\\source\\repos\\LightEngine v2\\Light
 
 int main(int argc, const char **argv) {
 
-	AppWindow::Window window("LightEngine v1.0", 1600, 900);
-	window.set_style(AppWindow::Style::MAXIMIZE);
-	window.set_style(AppWindow::Style::MINIMIZE);
-	window.set_style(AppWindow::Style::SIZEABLE);
+	AppWindow::Window window("LightEngine v1.0", res_w + 16, res_h + 39);
+	//window.set_style(AppWindow::Style::MAXIMIZE);
+	//window.set_style(AppWindow::Style::MINIMIZE);
+	//window.set_style(AppWindow::Style::SIZEABLE);
 	window.set_icon("LE.ico");
 
 	float color[4]{0.0,0.0,0.0};
@@ -83,20 +85,20 @@ int main(int argc, const char **argv) {
 		LightEngine::PixelShader pbr_ps(core, shader_directory + L"PBRShader.cso");	
 		LightEngine::PixelShader hud_ps(core, shader_directory + L"ViewportHUD_PS.cso");
 		LightEngine::PixelShader shadow_mapping_ps(core, shader_directory + L"ShadowMappingPS.cso");
-		LightEngine::PixelShader mc_gi(core, shader_directory + L"MonteCarloGI.cso");
-		LightEngine::ComputeShader cs_(core, shader_directory + L"MonteCarloGI_CS.cso");
-		//LightEngine::Texture2D texture_a(core, "B:\\CG Projects\\Tekstury\\PavingStones094_1K-PNG\\PavingStones094_1K_AmbientOcclusion.png");
-		//LightEngine::Texture2D texture_b(core, "B:\\CG Projects\\Tekstury\\blue.jpg");
+		LightEngine::PixelShader data_generate(core, shader_directory + L"DataGenerationPS.cso");
+		LightEngine::ComputeShader cs_(core, shader_directory + L"RT_Shadows_CS.cso");
 
-		static float blank[1000000];
-		std::vector<float> test_1 = create_test_texture_3d(500, 500);
-		std::vector<float> test_2 = create_test_texture_3d(250, 250);
+		static float blank[res_w*res_h*4];
+		//std::vector<float> test_1 = create_test_texture_3d(500, 500);
+		//std::vector<float> test_2 = create_test_texture_3d(250, 250);
 
-		LightEngine::Texture3D texture_a(core, "CS Out", 500, 500, 3, test_1.data());
-		LightEngine::Texture3D texture_b(core, "CS Out", 250, 250, 3, test_2.data());
-
-		LightEngine::Texture2D output_texture(core, "CS Out", 500, 500, blank);
+		LightEngine::Texture2D world_position_data(core, "world_position_data", res_w, res_h, blank);
+		LightEngine::Texture2D normal_data(core, "normal_data", res_w, res_h, blank);
 		LightEngine::ShaderResourceManager sr_manager(core);
+
+		core->add_texture_to_render(world_position_data, 0u);
+		core->add_texture_to_render(normal_data, 1u);
+
 
 		//sr_manager.bind_texture_buffer(texture_a, LightEngine::ShaderType::ComputeShader, 2u);
 		//sr_manager.bind_texture_buffer(texture_b, LightEngine::ShaderType::ComputeShader, 3u);
@@ -110,7 +112,7 @@ int main(int argc, const char **argv) {
 		std::shared_ptr<LightEngine::PixelShader> phong_ps_ptr = std::make_shared<LightEngine::PixelShader>(phong_ps);
 		std::shared_ptr<LightEngine::PixelShader> gouraud_ps_ptr = std::make_shared<LightEngine::PixelShader>(gouraud_ps);
 		std::shared_ptr<LightEngine::PixelShader> pbr_ps_ptr = std::make_shared<LightEngine::PixelShader>(pbr_ps);
-		std::shared_ptr<LightEngine::PixelShader> mc_gi_ptr = std::make_shared<LightEngine::PixelShader>(mc_gi);
+		//std::shared_ptr<LightEngine::PixelShader> mc_gi_ptr = std::make_shared<LightEngine::PixelShader>(mc_gi);
 
 
 		LightEngine::FPSCamera fps_camera(core);
@@ -155,19 +157,52 @@ int main(int argc, const char **argv) {
 			{{-0.4,0.0,0.0},{0.4,0.4,0.4,-1.0},{1,0,0}}};
 
 		std::vector<LightEngine::Vertex3> test_plane_vtx{
-			{{25.0, 0.0, -25.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}},
-			{{-25.0, 0.0, 25.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}},
-			{{25.0, 0.0, 25.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}},
-			{{-25.0, 0.0, -25.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}},
-			{{-25.0, 0.0, 25.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}},
-			{{25.0, 0.0, -25.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}}
+			{{5.0, 10.0, -5.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}},
+			{{-5.0, 10.0, 5.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}},
+			{{5.0, 10.0, 5.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}},
+			{{-5.0, 10.0, -5.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}},
+			{{-5.0, 10.0, 5.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}},
+			{{5.0, 10.0, -5.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}}
 		};
 
+
+		//LightEngine::Texture2D test_plane_tex = LightEngine::Texture2D::store_geometry(core, test_plane_vtx);
+		
 		LightEngine::Geometry<LightEngine::Vertex3> viewport_border(core, border_vertices, D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP, "border");
 		LightEngine::Geometry<LightEngine::Vertex3> shadow_map_display(core, shadow_map_display_vertices, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP,"shadow_map_display");
 		LightEngine::Geometry<LightEngine::Vertex3> test_plane(core, test_plane_vtx, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, "test_plane");
 
-		//scene.push_back(test_plane);
+
+		
+
+		std::vector<LightEngine::Geometry<LightEngine::Vertex3>> test_scene = LightEngine::Geometry<LightEngine::Vertex3>::load_from_obj(core, "B:\\CG Projects\\objects\\scene.obj");
+		scene.push_back(test_plane);
+		
+		static std::vector<LightEngine::Vertex3> tris_v0s(0);
+		static std::vector<LightEngine::Vertex3> tris_v1s(0);
+		static std::vector<LightEngine::Vertex3> tris_v2s(0);
+		const std::vector<LightEngine::Vertex3> vertices = test_plane.get_vertices_vector();
+		tris_v0s.reserve(vertices.size());
+		tris_v1s.reserve(vertices.size());
+		tris_v2s.reserve(vertices.size());
+
+		for (int i = 0; i < vertices.size(); i += 3) {
+
+			tris_v0s.push_back(vertices[i]);
+			tris_v1s.push_back(vertices[i + 1]);
+			tris_v2s.push_back(vertices[i + 2]);
+
+		}
+
+		LightEngine::Texture2D v0s_tex = LightEngine::Texture2D::store_geometry(core, tris_v0s);
+		LightEngine::Texture2D v1s_tex = LightEngine::Texture2D::store_geometry(core, tris_v1s);
+		LightEngine::Texture2D v2s_tex = LightEngine::Texture2D::store_geometry(core, tris_v2s);
+
+		sr_manager.bind_texture_buffer(v0s_tex, LightEngine::ShaderType::ComputeShader, 0u);
+		sr_manager.bind_texture_buffer(v1s_tex, LightEngine::ShaderType::ComputeShader, 1u);
+		sr_manager.bind_texture_buffer(v2s_tex, LightEngine::ShaderType::ComputeShader, 2u);
+
+		
 
 		direct_light.set_position(direct_light_position);
 		default_material.assign_vertex_shader(std::make_shared<LightEngine::VertexShader>(vs));
@@ -213,6 +248,8 @@ int main(int argc, const char **argv) {
 		int vp_width = 0;
 		int vp_height = 0;
 		
+		vs.bind();
+		data_generate.bind();
 		
 		while (WM_QUIT != msg.message) {
 			
@@ -226,13 +263,25 @@ int main(int argc, const char **argv) {
 				ImGui_ImplWin32_NewFrame();
 				ImGui::NewFrame(); 
 				
-				ImGui::DockSpaceOverViewport(0,ImGuiDockNodeFlags_PassthruCentralNode,0);
+				//ImGui::DockSpaceOverViewport(0,ImGuiDockNodeFlags_PassthruCentralNode,0);
 				
 				if(window.was_resized()) {
 				
 					std::cout<<window.get_width()<<" x "<<window.get_height()<<std::endl;
 					core->setup_frame_buffer(window.get_width(),window.get_height(), false);
-					update_viewport = true;
+					core->render_to_frame_buffer();
+
+
+					arcball_camera.set_aspect_ratio((float)res_w/(float)res_h);
+					arcball_camera.update_projection_matrix();
+					fps_camera.set_aspect_ratio((float)res_w/(float)res_h);
+					fps_camera.update_projection_matrix();
+
+					arcball_camera.update();
+					fps_camera.update();
+
+
+					//update_viewport = true;
 
 				}
 				// GUI Scope
@@ -297,56 +346,98 @@ int main(int argc, const char **argv) {
 							ImGui::EndMenu();
 						}
 
+
+						if (ImGui::BeginMenu("Camera")) {
+
+							if (ImGui::RadioButton("FPS", &camera, 0)) {
+								std::cout << "FPS camera selected" << std::endl;
+								fps_camera.bind(0);
+								update_camera = true;
+							}
+
+							ImGui::SameLine();
+
+							if (ImGui::RadioButton("Arcball", &camera, 1)) {
+								std::cout << "Arcball camera selected" << std::endl;
+								arcball_camera.bind(0);
+								update_camera = true;
+							}
+
+							if (camera) {
+								if (ImGui::SliderInt("FOV", &arcball_fov, 0, 180)) {
+									arcball_camera.set_fov((float)arcball_fov);
+									arcball_camera.update_projection_matrix();
+									update_camera = true;
+								}
+							}
+							else {
+								if (ImGui::SliderInt("FOV", &world_fov, 0, 180)) {
+									fps_camera.set_fov((float)world_fov);
+									fps_camera.update_projection_matrix();
+									update_camera = true;
+								}
+							}
+
+
+							if (ImGui::Button("Reset camera", ImVec2(150, 30))) {
+
+								if (camera)
+									arcball_camera.reset();
+								else
+									fps_camera.reset();
+								update_camera = true;
+							}
+
+							ImGui::EndMenu();
+
+						}
+
+
+						if (ImGui::BeginMenu("Light Sources")) {
+
+							if (ImGui::BeginMenu("Point light")) {
+								if (ImGui::CollapsingHeader("Color")) {
+									if (ImGui::ColorPicker3("Color", point_light_color)) {
+										point_light.set_color(point_light_color);
+										update_light = true;
+									}
+								}
+
+								if (ImGui::DragFloat3("Position", point_light_position, 0.1, -D3D11_FLOAT32_MAX, D3D11_FLOAT32_MAX, "%.1f")) {
+									point_light.set_position(point_light_position);
+									update_light = true;
+								}
+
+								if (ImGui::DragFloat("Intensity", &point_light_intensity, 10.0f, 1.0f, 1000.0f, "%.2f")) {
+									point_light.set_intensity(point_light_intensity);
+									update_light = true;
+								}
+
+								ImGui::EndMenu();
+							}
+
+							if (ImGui::BeginMenu("Direct light")) {
+								if (ImGui::ColorPicker3("Color", direct_light_color)) {
+									direct_light.set_color(direct_light_color);
+									update_light = true;
+								}
+
+								if (ImGui::DragFloat("Intensity", &direct_light_intensity, 10.0f, 1.0f, 1000.0f, "%.2f")) {
+									direct_light.set_intensity(direct_light_intensity);
+									update_light = true;
+								}
+
+								ImGui::EndMenu();
+							}
+
+							ImGui::EndMenu();
+						}
+
 						ImGui::EndMainMenuBar();
 					}					
 
-					ImGui::Begin("Camera");
 
-					if (ImGui::RadioButton("FPS", &camera, 0)) {
-						std::cout << "FPS camera selected" << std::endl;
-						fps_camera.bind(0);
-						update_camera = true;
-					}
-
-					ImGui::SameLine();
-
-					if (ImGui::RadioButton("Arcball", &camera, 1)) {
-						std::cout << "Arcball camera selected" << std::endl;
-						arcball_camera.bind(0);
-						update_camera = true;
-					}
-
-					if (camera) {
-						if (ImGui::SliderInt("FOV", &arcball_fov, 0, 180)) {
-							arcball_camera.set_fov((float)arcball_fov);
-							arcball_camera.update_projection_matrix();
-							update_camera = true;
-						}
-					}
-					else {
-						if (ImGui::SliderInt("FOV", &world_fov, 0, 180)) {
-							fps_camera.set_fov((float)world_fov);
-							fps_camera.update_projection_matrix();
-							update_camera = true;
-						}
-					}
-
-
-					if (ImGui::Button("Reset camera", ImVec2(150, 30))) {
-
-						if (camera)
-							arcball_camera.reset();
-						else
-							fps_camera.reset();
-						update_camera = true;
-					}
-
-
-					ImGui::End();
-
-
-
-					ImGui::Begin("Light Camera");
+					/*ImGui::Begin("Light Camera");
 
 					ImGui::Checkbox("Focus IO", &light_camera_focus);
 					
@@ -368,54 +459,11 @@ int main(int argc, const char **argv) {
 						update_camera = true;
 					}
 
-					ImGui::End();
+					ImGui::End();*/					
 
-
-
-
-					ImGui::Begin("Light Sources");
-
-					if (ImGui::BeginMenu("Point light")) {
-						if (ImGui::CollapsingHeader("Color")) {
-							if (ImGui::ColorPicker3("Color", point_light_color)) {
-								point_light.set_color(point_light_color);
-								update_light = true;
-							}
-						}
-
-						if (ImGui::DragFloat3("Position", point_light_position, 0.1, -D3D11_FLOAT32_MAX, D3D11_FLOAT32_MAX, "%.1f")) {
-							point_light.set_position(point_light_position);
-							update_light = true;
-						}
-
-						if (ImGui::DragFloat("Intensity", &point_light_intensity, 10.0f, 1.0f, 1000.0f, "%.2f")) {
-							point_light.set_intensity(point_light_intensity);
-							update_light = true;
-						}
-
-						ImGui::EndMenu();
-					}
-
-					if (ImGui::BeginMenu("Direct light")) {
-						if (ImGui::ColorPicker3("Color", direct_light_color)) {
-							direct_light.set_color(direct_light_color);
-							update_light = true;
-						}
-
-						if (ImGui::DragFloat("Intensity", &direct_light_intensity, 10.0f, 1.0f, 1000.0f, "%.2f")) {
-							direct_light.set_intensity(direct_light_intensity);
-							update_light = true;
-						}
-
-						ImGui::EndMenu();
-					}
-
-					ImGui::End();
-						
-
-					material_editor.render();
-					texture_browser.render();
-					bm_browser.render();
+					//material_editor.render();
+					//texture_browser.render();
+					//bm_browser.render();
 
 					ImGui::Render();								
 				}
@@ -565,19 +613,14 @@ int main(int argc, const char **argv) {
 					update_viewport = false;
 				}
 
-				core->clear_frame_buffer(color);
-
-				//default_ptr->bind();
-
-				//scene[0].bind_topology();
-				//scene[0].bind_vertex_buffer();
-				//scene[0].draw(0);	
-
-				
+				core->clear_frame_buffer(color);				
+				core->flush_render_targets();
+				// Setting textures as render targets 
+				core->render_to_textures();
 
 				for (int i = 0; i < scene.size(); i++) {
 											
-					default_ptr->bind();
+					//default_ptr->bind();
 
 					scene[i].bind_topology();
 					scene[i].bind_vertex_buffer();
@@ -585,20 +628,24 @@ int main(int argc, const char **argv) {
 					scene[i].draw(0);			
 				}			
 
+				// Releasing textures for usage as shader resources
+				core->release_render_targets();
+				
+				// Binding data generated by PS to texture buffers in CS
+
+				sr_manager.bind_texture_buffer(world_position_data, LightEngine::ShaderType::ComputeShader, 3u);
+				sr_manager.bind_texture_buffer(normal_data, LightEngine::ShaderType::ComputeShader, 4u);
+
 				core->cs_bind_frame_buffer(0u);
 				cs_.bind();
 				cs_.run(window.get_width(), window.get_height(), 1u);
 				core->cs_unbind_frame_buffer(0u);
 
+				sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 3u);
+				sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 4u);
 
-				hud_vs.bind();
-				hud_ps.bind();
-
-				viewport_border.bind_topology();
-				viewport_border.bind_vertex_buffer();
-				viewport_border.draw(0);
-
-
+				// Setting frame buffer as render target to draw GUI elements
+				core->render_to_frame_buffer();
 				ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());				
 				
 				core->present_frame();			

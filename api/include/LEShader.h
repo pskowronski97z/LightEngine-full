@@ -1,8 +1,9 @@
 #pragma once
 #include <memory>
 #include <wrl.h>
-#include <d3d11.h>
-#include <LETexture.h>
+#include <LEData.h>
+#include <LECore.h>
+//#include <LETexture.h>
 #include <LEException.h>
 
 namespace LightEngine {
@@ -114,9 +115,11 @@ namespace LightEngine {
 
 	class _declspec(dllexport) AbstractTexture : public ShaderResource {
 		friend class ShaderResourceManager;
+		friend class Core;
 	protected:
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv_ptr_;
 		Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> uav_ptr_;
+		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> rtv_ptr_;
 		AbstractTexture();
 	public:
 		void generate_mip_maps() const;
@@ -131,6 +134,17 @@ namespace LightEngine {
 	public:
 		Texture2D(const std::shared_ptr<Core> &core_ptr, const std::string &texture_path);
 		Texture2D(const std::shared_ptr<Core> &core_ptr, const std::string &name, const uint16_t width, const uint16_t height, const float *data);
+		// This method packs data from vector of Vertex3 to 2d texture.
+		// One texture can contain up to 16 384 vertices.
+		// Vertex component storing layout in texture is as follows:
+		// ROW 0 - Position
+		// ROW 1 - Color
+		// ROW 2 - Texture coordinates
+		// ROW 3 - Normal vector
+		// ROW 4 - Tangent vector
+		// ROW 5 - Bitangent vector
+		// Each component is a vector of 4 floats
+		static Texture2D store_geometry(const std::shared_ptr<Core>& core_ptr, const std::vector<Vertex3>& vertices);
 		uint16_t get_width() const;
 		uint16_t get_height() const;
 	};
