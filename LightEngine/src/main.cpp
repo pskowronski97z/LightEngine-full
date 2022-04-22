@@ -38,7 +38,7 @@ std::vector<float> create_test_texture_3d(int width, int height){
 }
 
 //Path to a directory where all compiled HLSL shaders (from "shaders" directory) are placed
-constexpr auto COMPILED_SHADERS_DIR = L"B:\\source\\repos\\LightEngine v2\\LightEngine-full\\bin\\x64\\Debug\\compiled shaders\\";
+constexpr auto COMPILED_SHADERS_DIR = L"C:\\Users\\User\\source\\repos\\LightEngine v2\\LightEngine-full\\bin\\x64\\Debug\\compiled shaders\\";
 
 int main(int argc, const char **argv) {
 
@@ -75,29 +75,50 @@ int main(int argc, const char **argv) {
 		ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.5f);
 		std::wstring shader_directory(COMPILED_SHADERS_DIR);
 
-		LightEngine::VertexShader vs(core, shader_directory + L"CameraVS.cso");
-		LightEngine::VertexShader hud_vs(core, shader_directory + L"ViewportHUD_VS.cso");
-		LightEngine::VertexShader shadow_mapping_vs(core, shader_directory + L"ShadowMappingVS.cso");
+		
+		//LightEngine::VertexShader hud_vs(core, shader_directory + L"ViewportHUD_VS.cso");
+		//LightEngine::VertexShader shadow_mapping_vs(core, shader_directory + L"ShadowMappingVS.cso");
 
-		LightEngine::PixelShader blinn_ps(core, shader_directory + L"BlinnPS.cso");
-		LightEngine::PixelShader phong_ps(core, shader_directory + L"PhongPS.cso");
-		LightEngine::PixelShader gouraud_ps(core, shader_directory + L"GouraudPS.cso");
-		LightEngine::PixelShader pbr_ps(core, shader_directory + L"PBRShader.cso");	
-		LightEngine::PixelShader hud_ps(core, shader_directory + L"ViewportHUD_PS.cso");
-		LightEngine::PixelShader shadow_mapping_ps(core, shader_directory + L"ShadowMappingPS.cso");
-		LightEngine::PixelShader data_generate(core, shader_directory + L"DataGenerationPS.cso");
+		//LightEngine::PixelShader blinn_ps(core, shader_directory + L"BlinnPS.cso");
+		//LightEngine::PixelShader phong_ps(core, shader_directory + L"PhongPS.cso");
+		//LightEngine::PixelShader gouraud_ps(core, shader_directory + L"GouraudPS.cso");
+		//LightEngine::PixelShader pbr_ps(core, shader_directory + L"PBRShader.cso");	
+		//LightEngine::PixelShader hud_ps(core, shader_directory + L"ViewportHUD_PS.cso");
+		//LightEngine::PixelShader shadow_mapping_ps(core, shader_directory + L"ShadowMappingPS.cso");
+		//LightEngine::PixelShader data_generate(core, shader_directory + L"DataGenerationPS.cso");
+
+		LightEngine::VertexShader vs(core, shader_directory + L"CameraVS.cso");
+		LightEngine::PixelShader pixel_data_generate(core, shader_directory + L"GeneratePixelDataPS.cso");
+		LightEngine::PixelShader lambert_diffuse_ps(core, shader_directory + L"LambertDiffusePS.cso");
 		LightEngine::ComputeShader cs_(core, shader_directory + L"RT_Shadows_CS.cso");
 
-		static float blank[res_w*res_h*4];
+		static float blank[res_w * res_h * 4];
+		ZeroMemory(blank, res_w * res_h * 4);
 		//std::vector<float> test_1 = create_test_texture_3d(500, 500);
 		//std::vector<float> test_2 = create_test_texture_3d(250, 250);
 
-		LightEngine::Texture2D world_position_data(core, "world_position_data", res_w, res_h, blank);
-		LightEngine::Texture2D normal_data(core, "normal_data", res_w, res_h, blank);
+		LightEngine::Texture2D pixel_world_position(core, "Pixel world position", res_w, res_h, blank);
+		LightEngine::Texture2D pixel_normal(core, "Pixel normal", res_w, res_h, blank);
+		LightEngine::Texture2D pixel_tangent(core, "Pixel tangent", res_w, res_h, blank);
+		LightEngine::Texture2D pixel_bitangent(core, "Pixel bitangent", res_w, res_h, blank);
+		LightEngine::Texture2D pixel_uvw(core, "Pixel texture coords", res_w, res_h, blank);
+		LightEngine::Texture2D pixel_color(core, "Pixel color", res_w, res_h, blank);
+
+		
+
+		
+		
+		core->add_texture_to_render(pixel_world_position, 0u);
+		core->add_texture_to_render(pixel_normal, 1u);
+		core->add_texture_to_render(pixel_tangent, 2u);
+		core->add_texture_to_render(pixel_bitangent, 3u);
+		core->add_texture_to_render(pixel_uvw, 4u);
+		core->add_texture_to_render(pixel_color, 5u);
+
 		LightEngine::ShaderResourceManager sr_manager(core);
 
-		core->add_texture_to_render(world_position_data, 0u);
-		core->add_texture_to_render(normal_data, 1u);
+		//core->add_texture_to_render(world_position_data, 0u);
+		//core->add_texture_to_render(normal_data, 1u);
 
 
 		//sr_manager.bind_texture_buffer(texture_a, LightEngine::ShaderType::ComputeShader, 2u);
@@ -108,10 +129,10 @@ int main(int argc, const char **argv) {
 		//output_texture.generate_mip_maps();
 		//sr_manager.bind_texture_buffer(output_texture, LightEngine::ShaderType::PixelShader, 0u);
 
-		std::shared_ptr<LightEngine::PixelShader> blinn_ps_ptr = std::make_shared<LightEngine::PixelShader>(blinn_ps);
+		/*std::shared_ptr<LightEngine::PixelShader> blinn_ps_ptr = std::make_shared<LightEngine::PixelShader>(blinn_ps);
 		std::shared_ptr<LightEngine::PixelShader> phong_ps_ptr = std::make_shared<LightEngine::PixelShader>(phong_ps);
 		std::shared_ptr<LightEngine::PixelShader> gouraud_ps_ptr = std::make_shared<LightEngine::PixelShader>(gouraud_ps);
-		std::shared_ptr<LightEngine::PixelShader> pbr_ps_ptr = std::make_shared<LightEngine::PixelShader>(pbr_ps);
+		std::shared_ptr<LightEngine::PixelShader> pbr_ps_ptr = std::make_shared<LightEngine::PixelShader>(pbr_ps);*/
 		//std::shared_ptr<LightEngine::PixelShader> mc_gi_ptr = std::make_shared<LightEngine::PixelShader>(mc_gi);
 
 
@@ -119,31 +140,31 @@ int main(int argc, const char **argv) {
 		fps_camera.update();
 
 		LightEngine::ArcballCamera arcball_camera(core, 50.0);
-		LightEngine::ArcballCamera light_camera(core, 50.0);
+		//LightEngine::ArcballCamera light_camera(core, 50.0);
 
-		LightEngine::LightSource point_light(core, 1.0);
-		LightEngine::LightSource direct_light(core, 0.0);
+		//LightEngine::LightSource point_light(core, 1.0);
+		//LightEngine::LightSource direct_light(core, 0.0);
 	
-		LightEngine::Materials::BasicMaterial default_material(core, "Default00");
-		LightEngine::Materials::PBRMaterial pbr_material(core, "PBR_Metallic_Roughness");
+		//LightEngine::Materials::BasicMaterial default_material(core, "Default00");
+		//LightEngine::Materials::PBRMaterial pbr_material(core, "PBR_Metallic_Roughness");
 		LightEngine::Sampler sampler_nearest(core, LightEngine::Sampler::Filtering::NEAREST);
 		LightEngine::Sampler sampler_bilinear(core, LightEngine::Sampler::Filtering::BILINEAR);
 		LightEngine::Sampler sampler_trilinear(core, LightEngine::Sampler::Filtering::TRILINEAR);
 		LightEngine::Sampler sampler_anisotropic(core, LightEngine::Sampler::Filtering::ANISOTROPIC);
-		LightEngine::RenderableTexture shadow_map(core, "Shadow map", 512, 512);
+		//LightEngine::RenderableTexture shadow_map(core, "Shadow map", 512, 512);
 		
 		
-		LightEngineUI::Backend::BrowserModel<LightEngine::StaticTexture> texture_browser_model;
+		/*LightEngineUI::Backend::BrowserModel<LightEngine::StaticTexture> texture_browser_model;
 		LightEngineUI::Backend::BrowserModel<LightEngine::Materials::BasicMaterial> bm_browser_model;
 		std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::Materials::BasicMaterial>> bm_browser_model_ptr = std::make_shared<LightEngineUI::Backend::BrowserModel<LightEngine::Materials::BasicMaterial>>(bm_browser_model);
 		std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::StaticTexture>> tbm_ptr = std::make_shared<LightEngineUI::Backend::BrowserModel<LightEngine::StaticTexture>>(texture_browser_model);
 		LightEngineUI::Frontend::TextureBrowser texture_browser(tbm_ptr,core);
 		LightEngineUI::Frontend::MaterialEditor material_editor(tbm_ptr);
-		LightEngineUI::Frontend::BasicMaterialsBrowser bm_browser(bm_browser_model_ptr,core);
+		LightEngineUI::Frontend::BasicMaterialsBrowser bm_browser(bm_browser_model_ptr,core);*/
 
 
 
-		std::vector<LightEngine::Vertex3> border_vertices{
+		/*std::vector<LightEngine::Vertex3> border_vertices{
 			{{-0.99,0.99,0.0},{0.4,0.4,0.4,1.0}},
 			{{0.99,0.99,0.0},{0.4,0.4,0.4,1.0}},
 			{{0.99,-0.99,0.0},{0.4,0.4,0.4,1.0}},
@@ -154,7 +175,7 @@ int main(int argc, const char **argv) {
 			{{-0.99,-0.99,0.0},{0.4,0.4,0.4,-1.0},{0,1,0}},
 			{{-0.99,0.0,0.0},{0.4,0.4,0.4,-1.0},{0,0,0}},
 			{{-0.4,-0.99,0.0},{0.4,0.4,0.4,-1.0},{1,1,0}},			
-			{{-0.4,0.0,0.0},{0.4,0.4,0.4,-1.0},{1,0,0}}};
+			{{-0.4,0.0,0.0},{0.4,0.4,0.4,-1.0},{1,0,0}}};*/
 
 		std::vector<LightEngine::Vertex3> test_plane_vtx{
 			{{5.0, 10.0, -5.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}},
@@ -165,23 +186,36 @@ int main(int argc, const char **argv) {
 			{{5.0, 10.0, -5.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}}
 		};
 
+		std::vector<LightEngine::Vertex3> test_plane_1_vtx{
+			{{35.0, 0.0, -35.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}},
+			{{-35.0, 0.0, 35.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}},
+			{{35.0, 0.0, 35.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}},
+			{{-35.0, 0.0, -35.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}},
+			{{-35.0, 0.0, 35.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}},
+			{{35.0, 0.0, -35.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}}
+		};
 
 		//LightEngine::Texture2D test_plane_tex = LightEngine::Texture2D::store_geometry(core, test_plane_vtx);
 		
-		LightEngine::Geometry<LightEngine::Vertex3> viewport_border(core, border_vertices, D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP, "border");
+		/*LightEngine::Geometry<LightEngine::Vertex3> viewport_border(core, border_vertices, D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP, "border");
 		LightEngine::Geometry<LightEngine::Vertex3> shadow_map_display(core, shadow_map_display_vertices, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP,"shadow_map_display");
-		LightEngine::Geometry<LightEngine::Vertex3> test_plane(core, test_plane_vtx, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, "test_plane");
-
+		*/
+		//LightEngine::Geometry<LightEngine::Vertex3> test_plane(core, test_plane_vtx, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, "test_plane");
+		//LightEngine::Geometry<LightEngine::Vertex3> test_plane_1(core, test_plane_1_vtx, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, "test_plane");
 
 		
+		static std::vector<LightEngine::Geometry<LightEngine::Vertex3>> scene_objs = LightEngine::Geometry<LightEngine::Vertex3>::load_from_obj(core, "C:\\Users\\User\\Desktop\\3D Objects\\scene.obj");
+		//std::vector<LightEngine::Geometry<LightEngine::Vertex3>> test_scene = LightEngine::Geometry<LightEngine::Vertex3>::load_from_obj(core, "B:\\CG Projects\\objects\\scene.obj");
+		//scene.push_back(test_plane);
+		//scene.push_back(test_plane_1);
+		//scene.push_back(scene_objs[0]);
 
-		std::vector<LightEngine::Geometry<LightEngine::Vertex3>> test_scene = LightEngine::Geometry<LightEngine::Vertex3>::load_from_obj(core, "B:\\CG Projects\\objects\\scene.obj");
-		scene.push_back(test_plane);
-		
+
 		static std::vector<LightEngine::Vertex3> tris_v0s(0);
 		static std::vector<LightEngine::Vertex3> tris_v1s(0);
 		static std::vector<LightEngine::Vertex3> tris_v2s(0);
-		const std::vector<LightEngine::Vertex3> vertices = test_plane.get_vertices_vector();
+		const std::vector<LightEngine::Vertex3> vertices = scene_objs[0].get_vertices_vector();
+
 		tris_v0s.reserve(vertices.size());
 		tris_v1s.reserve(vertices.size());
 		tris_v2s.reserve(vertices.size());
@@ -198,32 +232,32 @@ int main(int argc, const char **argv) {
 		LightEngine::Texture2D v1s_tex = LightEngine::Texture2D::store_geometry(core, tris_v1s);
 		LightEngine::Texture2D v2s_tex = LightEngine::Texture2D::store_geometry(core, tris_v2s);
 
-		sr_manager.bind_texture_buffer(v0s_tex, LightEngine::ShaderType::ComputeShader, 0u);
-		sr_manager.bind_texture_buffer(v1s_tex, LightEngine::ShaderType::ComputeShader, 1u);
-		sr_manager.bind_texture_buffer(v2s_tex, LightEngine::ShaderType::ComputeShader, 2u);
+		//sr_manager.bind_texture_buffer(v0s_tex, LightEngine::ShaderType::ComputeShader, 0u);
+		//sr_manager.bind_texture_buffer(v1s_tex, LightEngine::ShaderType::ComputeShader, 1u);
+		//sr_manager.bind_texture_buffer(v2s_tex, LightEngine::ShaderType::ComputeShader, 2u);
 
 		
 
-		direct_light.set_position(direct_light_position);
+		/*direct_light.set_position(direct_light_position);
 		default_material.assign_vertex_shader(std::make_shared<LightEngine::VertexShader>(vs));
 		default_material.assign_pixel_shader(blinn_ps_ptr);
 
 		std::shared_ptr<LightEngine::Materials::BasicMaterial> default_ptr = std::make_shared<LightEngine::Materials::BasicMaterial>(default_material);
 		std::shared_ptr<LightEngine::Materials::PBRMaterial> pbr_ptr = std::make_shared<LightEngine::Materials::PBRMaterial>(pbr_material);	
 
-		material_editor.load_material(default_ptr);
+		material_editor.load_material(default_ptr);*/
 
-		default_ptr->assign_vertex_shader(std::make_shared<LightEngine::VertexShader>(vs));
-		default_ptr->assign_pixel_shader(blinn_ps_ptr);
+		/*default_ptr->assign_vertex_shader(std::make_shared<LightEngine::VertexShader>(vs));
+		default_ptr->assign_pixel_shader(blinn_ps_ptr);*/
 
-		point_light.bind_ps_buffer(1);
+		/*point_light.bind_ps_buffer(1);
 		point_light.bind_vs_buffer(1);
 		direct_light.bind_ps_buffer(2);
-		direct_light.bind_vs_buffer(2);
+		direct_light.bind_vs_buffer(2);*/
 
 		sampler_anisotropic.bind(0);
 
-		direct_light.update();
+		/*direct_light.update();*/
 		
 		//arcball_camera.modify_center(0,7.0f,0);
 		arcball_camera.modify_horizontal_angle(-30.0f);
@@ -235,22 +269,37 @@ int main(int argc, const char **argv) {
 
 		//light_camera.modify_center(0.0,0.0,1.0);
 		//light_camera.modify_horizontal_angle(-90.0f);
-		light_camera.set_clipping_near(lc_near_z);
+		/*light_camera.set_clipping_near(lc_near_z);
 		light_camera.set_clipping_far(lc_far_z);
 		light_camera.set_fov(lc_fov);
 		light_camera.update_view_matrix();
 		light_camera.update();
 		
-		light_camera.bind(4);
+		light_camera.bind(4);*/
 
 		//bind light-perspective camera
+
+		LightEngine::Light p0;
+		p0.position_.x = point_light_position[0];
+		p0.position_.y = point_light_position[1];
+		p0.position_.z = point_light_position[2];
+
+		p0.color_.x = point_light_color[0];
+		p0.color_.y = point_light_color[1];
+		p0.color_.z = point_light_color[2];
+		p0.color_.w = point_light_intensity;
+
+		LightEngine::CBuffer<LightEngine::Light> point_light_cbuff(core, "Point light 0", &p0, sizeof(p0));
+		sr_manager.bind_constant_buffer(point_light_cbuff, LightEngine::ShaderType::PixelShader, 0u);
 
 		int vp_width = 0;
 		int vp_height = 0;
 		
 		vs.bind();
-		data_generate.bind();
+		//data_generate.bind();
 		
+		
+
 		while (WM_QUIT != msg.message) {
 			
 			if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
@@ -398,18 +447,28 @@ int main(int argc, const char **argv) {
 							if (ImGui::BeginMenu("Point light")) {
 								if (ImGui::CollapsingHeader("Color")) {
 									if (ImGui::ColorPicker3("Color", point_light_color)) {
-										point_light.set_color(point_light_color);
+										//point_light.set_color(point_light_color);
+
+										p0.color_.x = point_light_color[0];
+										p0.color_.y = point_light_color[1];
+										p0.color_.z = point_light_color[2];
+
 										update_light = true;
 									}
 								}
 
 								if (ImGui::DragFloat3("Position", point_light_position, 0.1, -D3D11_FLOAT32_MAX, D3D11_FLOAT32_MAX, "%.1f")) {
-									point_light.set_position(point_light_position);
+									//point_light.set_position(point_light_position);
+									p0.position_.x = point_light_position[0];
+									p0.position_.y = point_light_position[1];
+									p0.position_.z = point_light_position[2];
+
 									update_light = true;
 								}
 
 								if (ImGui::DragFloat("Intensity", &point_light_intensity, 10.0f, 1.0f, 1000.0f, "%.2f")) {
-									point_light.set_intensity(point_light_intensity);
+									//point_light.set_intensity(point_light_intensity);
+									p0.color_.w = point_light_intensity;
 									update_light = true;
 								}
 
@@ -418,17 +477,19 @@ int main(int argc, const char **argv) {
 
 							if (ImGui::BeginMenu("Direct light")) {
 								if (ImGui::ColorPicker3("Color", direct_light_color)) {
-									direct_light.set_color(direct_light_color);
+									//direct_light.set_color(direct_light_color);
 									update_light = true;
 								}
 
 								if (ImGui::DragFloat("Intensity", &direct_light_intensity, 10.0f, 1.0f, 1000.0f, "%.2f")) {
-									direct_light.set_intensity(direct_light_intensity);
+									//direct_light.set_intensity(direct_light_intensity);
 									update_light = true;
 								}
 
 								ImGui::EndMenu();
 							}
+
+
 
 							ImGui::EndMenu();
 						}
@@ -483,22 +544,22 @@ int main(int argc, const char **argv) {
 					if(camera) {
 						if (light_camera_focus) {
 							if (AppWindow::IO::Mouse::left_button_down()) {
-								light_camera.modify_vertical_angle(-cursor_x_delta * ORBITING_SENSITIVITY);
-								light_camera.modify_horizontal_angle(-cursor_y_delta * ORBITING_SENSITIVITY);
-								light_camera.update_view_matrix();
+								//light_camera.modify_vertical_angle(-cursor_x_delta * ORBITING_SENSITIVITY);
+								//light_camera.modify_horizontal_angle(-cursor_y_delta * ORBITING_SENSITIVITY);
+								//light_camera.update_view_matrix();
 								update_camera = true;
 							}
 
 							if (AppWindow::IO::Mouse::middle_button_down()) {
-								light_camera.pan_horizontal(-cursor_x_delta * PANNING_SENSITIVITY);
-								light_camera.pan_vertical(cursor_y_delta * PANNING_SENSITIVITY);
-								light_camera.update_view_matrix();
+								//light_camera.pan_horizontal(-cursor_x_delta * PANNING_SENSITIVITY);
+								//light_camera.pan_vertical(cursor_y_delta * PANNING_SENSITIVITY);
+								//light_camera.update_view_matrix();
 								update_camera = true;
 							}
 
 							if (wheel_d) {
-								light_camera.modify_radius(-wheel_d * ZOOM_SENSITIVITY*0.1);
-								light_camera.update_view_matrix();
+								//light_camera.modify_radius(-wheel_d * ZOOM_SENSITIVITY*0.1);
+								//light_camera.update_view_matrix();
 								update_camera = true;
 							}
 
@@ -579,18 +640,19 @@ int main(int argc, const char **argv) {
 					else 
 						arcball_camera.update();
 
-					light_camera.update();
+					//light_camera.update();
 					update_camera = false;
 				}
 
 				if(update_light){
-					point_light.update();
-					direct_light.update();
+					//point_light.update();
+					//direct_light.update();
+					point_light_cbuff.update(&p0, sizeof(p0));
 					update_light = false;
 				}
 
 				if(update_material){
-					default_ptr->update();
+					//default_ptr->update();
 					//pbr_ptr->update();
 					update_material = false;
 				}
@@ -602,50 +664,70 @@ int main(int argc, const char **argv) {
 					core->viewport_setup(vp_tl_x,vp_tl_y,vp_width, vp_height);
 					arcball_camera.set_aspect_ratio((float)vp_width/(float)vp_height);
 					arcball_camera.update_projection_matrix();
-					light_camera.set_aspect_ratio((float)vp_width/(float)vp_height);
-					light_camera.update_projection_matrix();
+					//light_camera.set_aspect_ratio((float)vp_width/(float)vp_height);
+					//light_camera.update_projection_matrix();
 					fps_camera.set_aspect_ratio((float)vp_width/(float)vp_height);
 					fps_camera.update_projection_matrix();
 
 					arcball_camera.update();
 					fps_camera.update();
-					light_camera.update();
+					//light_camera.update();
 					update_viewport = false;
 				}
-
+			
+				
 				core->clear_frame_buffer(color);				
-				core->flush_render_targets();
-				// Setting textures as render targets 
-				core->render_to_textures();
-
+				
 				for (int i = 0; i < scene.size(); i++) {
-											
-					//default_ptr->bind();
-
+					
 					scene[i].bind_topology();
 					scene[i].bind_vertex_buffer();
 
-					scene[i].draw(0);			
+					// Bind pixel shader which will generate pixel data and store it in textures
+					pixel_data_generate.bind();
+
+					// Use rendering to texture mode
+					core->render_to_textures();
+
+					// Clear all textures that will be used as render targets
+					core->flush_render_targets();
+
+					// Run first pass to generate data
+					scene[i].draw(0);
+
+					// Use rendering to frame buffer mode
+					core->render_to_frame_buffer();
+
+					// Bind pixel shader for lighting/shading 
+					lambert_diffuse_ps.bind();
+
+					sr_manager.bind_texture_buffer(pixel_normal, LightEngine::ShaderType::PixelShader, 0u);
+	
+					// Run second (final) pass to render image in frame buffer
+					scene[i].draw(0);
+
+					sr_manager.unbind_texture_buffer(LightEngine::ShaderType::PixelShader, 0u);
+							
 				}			
 
 				// Releasing textures for usage as shader resources
-				core->release_render_targets();
+				//core->release_render_targets();
 				
 				// Binding data generated by PS to texture buffers in CS
 
-				sr_manager.bind_texture_buffer(world_position_data, LightEngine::ShaderType::ComputeShader, 3u);
-				sr_manager.bind_texture_buffer(normal_data, LightEngine::ShaderType::ComputeShader, 4u);
+				//sr_manager.bind_texture_buffer(world_position_data, LightEngine::ShaderType::ComputeShader, 3u);
+				//sr_manager.bind_texture_buffer(normal_data, LightEngine::ShaderType::ComputeShader, 4u);
 
-				core->cs_bind_frame_buffer(0u);
-				cs_.bind();
-				cs_.run(window.get_width(), window.get_height(), 1u);
-				core->cs_unbind_frame_buffer(0u);
+				//core->cs_bind_frame_buffer(0u);
+				//cs_.bind();
+				//cs_.run(window.get_width(), window.get_height(), 1u);
+				//core->cs_unbind_frame_buffer(0u);
 
-				sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 3u);
-				sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 4u);
+				//sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 3u);
+				//sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 4u);
 
 				// Setting frame buffer as render target to draw GUI elements
-				core->render_to_frame_buffer();
+				//ore->render_to_frame_buffer();
 				ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());				
 				
 				core->present_frame();			

@@ -8,6 +8,12 @@
 
 namespace LightEngine {
 
+	// DEBUG LIGHT STRUCTURE
+	struct Light {
+		DirectX::XMFLOAT4A position_;
+		DirectX::XMFLOAT4A color_;
+	};
+
 	class __declspec(dllexport) ConstantBuffer : protected CoreUser {
 	protected:
 		Microsoft::WRL::ComPtr<ID3D11Buffer> constant_buffer_ptr_;
@@ -113,6 +119,17 @@ namespace LightEngine {
 		uint8_t get_bound_slot_number() const;
 	};
 
+	template <class T>
+	class CBuffer : public ShaderResource {
+	friend class ShaderResourceManager;
+		Microsoft::WRL::ComPtr<ID3D11Buffer> buffer_ptr_;
+	public:
+		CBuffer(std::shared_ptr<Core> core_ptr, const std::string &name, const T* const data, const uint32_t size_in_bytes);
+		void update(const T* const data, const uint32_t size_in_bytes);
+	};
+
+	template class _declspec(dllexport) CBuffer<Light>;
+
 	class _declspec(dllexport) AbstractTexture : public ShaderResource {
 		friend class ShaderResourceManager;
 		friend class Core;
@@ -168,7 +185,8 @@ namespace LightEngine {
 		ShaderResourceManager(const std::shared_ptr<Core> &core_ptr);
 		bool bind_texture_buffer(AbstractTexture &texture, const ShaderType shader_type, const uint8_t slot) const;
 		bool bind_cs_unordered_access_buffer(AbstractTexture &texture, const uint8_t slot) const;
-		//void bind_constant_buffer(uint8_t slot);
+		template<class T>
+		bool bind_constant_buffer(CBuffer<T> &cbuffer, const ShaderType shader_type, const uint8_t slot) const;
 		//void bind_sampler_buffer(uint8_t slot);
 		bool unbind_texture_buffer(ShaderType shader_type, uint8_t slot) const;
 		bool unbind_cs_unordered_access_buffer(uint8_t slot) const;
@@ -176,4 +194,7 @@ namespace LightEngine {
 		//void unbind_sampler_buffer(uint8_t slot);
 	};
 	
+	template _declspec(dllexport) bool ShaderResourceManager::bind_constant_buffer(CBuffer<Light> &cbuffer, const ShaderType shader_type, const uint8_t slot) const;
+	
+
 }

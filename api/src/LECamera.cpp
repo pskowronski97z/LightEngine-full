@@ -11,8 +11,8 @@ LightEngine::Camera::Camera(std::shared_ptr<Core> core_ptr) : ConstantBuffer(cor
 
 	fov_ = DirectX::XMConvertToRadians(45.0f);
 	aspect_ratio_ = 16.0f / 9.0f;
-	near_z_ = 20.0f;
-	far_z_ = 100.0f;
+	near_z_ = 5.0f;
+	far_z_ = 400.0f;
 	is_ortho_ = false;
 	ortho_scaling_ = 20.0;
 	camera_world_position_[0] = 0.0;
@@ -52,7 +52,7 @@ void LightEngine::Camera::update_projection_matrix() {
 
 void LightEngine::Camera::bind(short slot) {
 	bind_vs_buffer(slot);
-	bind_ps_buffer(slot);
+	//bind_ps_buffer(slot);
 }
 
 void LightEngine::Camera::set_perspective_projection() { is_ortho_ = false; }

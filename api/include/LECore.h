@@ -23,9 +23,11 @@ namespace LightEngine {
 		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> frame_buffer_rtv_ptr_;
 		ID3D11RenderTargetView *render_targets[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT];
 		Microsoft::WRL::ComPtr<ID3D11DepthStencilView> frame_buffer_dsv_ptr_;
-		Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> frame_buffer_uav_ptr_;
-		Microsoft::WRL::ComPtr<ID3D11Texture2D> back_buffer_ptr_;
+		Microsoft::WRL::ComPtr<ID3D11DepthStencilView> default_dsv_ptr_;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> frame_buffer_ptr_;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> depth_texture_ms_ptr_;
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> depth_texture_ptr_;
+		uint8_t msaa_samples_count_;
 		D3D11_VIEWPORT viewport_;
 		HRESULT call_result_;
 		bool rendering_to_frame_buffer_ = true;
@@ -51,8 +53,8 @@ namespace LightEngine {
 		// Render targets should be bound again after calling this!
 		void setup_frame_buffer(const uint16_t width, const uint16_t height, const bool init);
 		// CAUTION! - This method unbinds all render targets! 
-		void cs_bind_frame_buffer(const uint16_t slot);
-		void cs_unbind_frame_buffer(const uint16_t slot);
+		/*void cs_bind_frame_buffer(const uint16_t slot);
+		void cs_unbind_frame_buffer(const uint16_t slot);*/
 	};
 
 	class CoreUser {

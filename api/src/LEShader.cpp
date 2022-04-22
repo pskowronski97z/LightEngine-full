@@ -129,6 +129,49 @@ void LightEngine::ComputeShader::run(uint16_t x_groups_count, uint16_t y_groups_
 }
 
 
+template<class T> 
+LightEngine::CBuffer<T>::CBuffer(std::shared_ptr<Core> core_ptr, const std::string& name, const T* const data, const uint32_t size_in_bytes) {
+
+	shader_resource_name_ = name;
+	core_ptr_ = core_ptr;
+
+	D3D11_BUFFER_DESC buffer_desc;
+	D3D11_SUBRESOURCE_DATA sr_data;
+
+	buffer_desc.ByteWidth = size_in_bytes;
+	buffer_desc.Usage = D3D11_USAGE_DYNAMIC;
+	buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	buffer_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	buffer_desc.MiscFlags = 0u;
+	buffer_desc.StructureByteStride = 4u;
+
+	sr_data.pSysMem = data;
+
+	call_result_ = core_ptr_->get_device_ptr()->CreateBuffer(&buffer_desc, &sr_data, &buffer_ptr_);
+	// TODO - Fix exceptions for deriving classes
+	if (FAILED(call_result_))
+		throw LECoreException("<D3D11 ERROR> <Constant buffer creation failed> ", "LEShader.cpp", __LINE__, call_result_);
+
+}
+
+template<class T>
+void LightEngine::CBuffer<T>::update(const T* const data, const uint32_t size_in_bytes) {
+
+	D3D11_MAPPED_SUBRESOURCE new_constant_buffer;
+	ZeroMemory(&new_constant_buffer, sizeof(new_constant_buffer));
+
+	call_result_ = core_ptr_->get_context_ptr()->Map(buffer_ptr_.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &new_constant_buffer);
+
+	if (FAILED(call_result_))
+		throw LECoreException("<Shader constant buffer mapping failed> ", "LEShader.cpp", __LINE__, call_result_);
+
+	memcpy(new_constant_buffer.pData, data, size_in_bytes);
+
+	core_ptr_->get_context_ptr()->Unmap(buffer_ptr_.Get(), 0);
+
+}
+
+
 LightEngine::ShaderResourceManager::ShaderResourceManager(const std::shared_ptr<Core> &core_ptr) : CoreUser(core_ptr) {}
 
 bool LightEngine::ShaderResourceManager::bind_texture_buffer(AbstractTexture &texture, const ShaderType shader_type, const uint8_t slot) const {
@@ -172,6 +215,51 @@ bool LightEngine::ShaderResourceManager::bind_texture_buffer(AbstractTexture &te
 
 	return true;
 }
+
+template<class T>
+bool LightEngine::ShaderResourceManager::bind_constant_buffer(CBuffer<T> &cbuffer, const ShaderType shader_type, const uint8_t slot) const {
+
+	if (!valid_slot(slot, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT))
+		return false;
+
+	switch (shader_type) {
+
+	case ShaderType::VertexShader:
+		core_ptr_->get_context_ptr()->VSSetConstantBuffers(slot, 1u, cbuffer.buffer_ptr_.GetAddressOf());
+		break;
+
+	case ShaderType::GeometryShader:
+		core_ptr_->get_context_ptr()->GSSetConstantBuffers(slot, 1u, cbuffer.buffer_ptr_.GetAddressOf());
+		break;
+
+	case ShaderType::HullShader:
+		core_ptr_->get_context_ptr()->HSSetConstantBuffers(slot, 1u, cbuffer.buffer_ptr_.GetAddressOf());
+		break;
+
+	case ShaderType::DomainShader:
+		core_ptr_->get_context_ptr()->DSSetConstantBuffers(slot, 1u, cbuffer.buffer_ptr_.GetAddressOf());
+		break;
+
+	case ShaderType::PixelShader:
+		core_ptr_->get_context_ptr()->PSSetConstantBuffers(slot, 1u, cbuffer.buffer_ptr_.GetAddressOf());
+		break;
+
+	case ShaderType::ComputeShader:
+		core_ptr_->get_context_ptr()->CSSetConstantBuffers(slot, 1u, cbuffer.buffer_ptr_.GetAddressOf());
+		break;
+
+	default:
+		return false;
+		break;
+	}
+
+	cbuffer.bound_to_shader_ = shader_type;
+	cbuffer.bound_to_slot_ = slot;
+
+	return true;
+
+}
+
 
 bool LightEngine::ShaderResourceManager::bind_cs_unordered_access_buffer(AbstractTexture &texture, const uint8_t slot) const {
 

@@ -8,6 +8,7 @@
 
 LightEngine::Core::Core(HWND window_handle_, int viewport_width, int viewport_height) {
 
+	msaa_samples_count_ = 4u;
 	static const D3D_FEATURE_LEVEL feature_level = D3D_FEATURE_LEVEL_11_0;
 	static DXGI_SWAP_CHAIN_DESC swap_chain_desc = { 0 };
 
@@ -19,10 +20,10 @@ LightEngine::Core::Core(HWND window_handle_, int viewport_width, int viewport_he
 	swap_chain_desc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 	swap_chain_desc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
 
-	swap_chain_desc.SampleDesc.Count = 1u;
+	swap_chain_desc.SampleDesc.Count = msaa_samples_count_;
 	swap_chain_desc.SampleDesc.Quality = 0u;
 
-	swap_chain_desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_UNORDERED_ACCESS | DXGI_USAGE_SHADER_INPUT;
+	swap_chain_desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT;
 	swap_chain_desc.BufferCount = 1;
 	swap_chain_desc.OutputWindow = window_handle_;
 	swap_chain_desc.Windowed = true;
@@ -71,16 +72,17 @@ void LightEngine::Core::setup_frame_buffer(const uint16_t width, const uint16_t 
 		context_ptr_->CSSetUnorderedAccessViews(0u, 1u, &null_uav_ptr, nullptr);
 		frame_buffer_dsv_ptr_->Release();
 		frame_buffer_rtv_ptr_->Release();
-		back_buffer_ptr_->Release();
+		frame_buffer_ptr_->Release();
+		depth_texture_ms_ptr_->Release();
 		depth_texture_ptr_->Release();
-		frame_buffer_uav_ptr_->Release();
+		//frame_buffer_uav_ptr_->Release();
 
 		call_result_ = swap_chain_ptr_->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
 	}
 
 	// Retrieve back buffer from swap chain
 
-	call_result_ = swap_chain_ptr_->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(back_buffer_ptr_.GetAddressOf()));
+	call_result_ = swap_chain_ptr_->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(frame_buffer_ptr_.GetAddressOf()));
 
 	if (FAILED(call_result_))
 		throw LECoreException("<D3D11 ERROR> <Cannot obtain an access to the back buffer> ", "LECore.cpp", __LINE__, call_result_);
@@ -88,12 +90,12 @@ void LightEngine::Core::setup_frame_buffer(const uint16_t width, const uint16_t 
 
 	// Creating render target view with previously extracted texture
 
-	call_result_ = device_ptr_->CreateRenderTargetView(back_buffer_ptr_.Get(), nullptr, frame_buffer_rtv_ptr_.GetAddressOf());
+	call_result_ = device_ptr_->CreateRenderTargetView(frame_buffer_ptr_.Get(), nullptr, frame_buffer_rtv_ptr_.GetAddressOf());
 
 	if (FAILED(call_result_))
 		throw LECoreException("<D3D11 ERROR> <Render target creation failed> ", "LECore.cpp", __LINE__, call_result_);
 
-	// Creating depth texture
+	// Creating multisampled depth texture
 
 	static D3D11_TEXTURE2D_DESC depth_texture_desc = { 0 };
 
@@ -102,12 +104,12 @@ void LightEngine::Core::setup_frame_buffer(const uint16_t width, const uint16_t 
 	depth_texture_desc.MipLevels = 1u;
 	depth_texture_desc.ArraySize = 1u;
 	depth_texture_desc.Format = DXGI_FORMAT_D32_FLOAT;
-	depth_texture_desc.SampleDesc.Count = 1u;
+	depth_texture_desc.SampleDesc.Count = msaa_samples_count_;
 	depth_texture_desc.SampleDesc.Quality = 0u;
 	depth_texture_desc.Usage = D3D11_USAGE_DEFAULT;
 	depth_texture_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
 
-	call_result_ = device_ptr_->CreateTexture2D(&depth_texture_desc, nullptr, depth_texture_ptr_.GetAddressOf());
+	call_result_ = device_ptr_->CreateTexture2D(&depth_texture_desc, nullptr, depth_texture_ms_ptr_.GetAddressOf());
 
 	if (FAILED(call_result_))
 		throw LECoreException("<D3D11 ERROR> <Depth texture creation failed> ", "LECore.cpp", __LINE__, call_result_);
@@ -115,12 +117,31 @@ void LightEngine::Core::setup_frame_buffer(const uint16_t width, const uint16_t 
 	static D3D11_DEPTH_STENCIL_VIEW_DESC view_desc = {};
 
 	view_desc.Format = DXGI_FORMAT_D32_FLOAT;
-	view_desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+	view_desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
 	view_desc.Texture2D.MipSlice = 0u;
 
 	// Creating depth stencil view using previously created texture
 
-	call_result_ = device_ptr_->CreateDepthStencilView(depth_texture_ptr_.Get(), &view_desc, frame_buffer_dsv_ptr_.GetAddressOf());
+	call_result_ = device_ptr_->CreateDepthStencilView(depth_texture_ms_ptr_.Get(), &view_desc, frame_buffer_dsv_ptr_.GetAddressOf());
+
+	if (FAILED(call_result_))
+		throw LECoreException("<D3D11 ERROR> <Stencil view creation failed> ", "LECore.cpp", __LINE__, call_result_);
+
+
+	//Creating default depth texture
+
+	depth_texture_desc.SampleDesc.Count = 1u;
+
+	call_result_ = device_ptr_->CreateTexture2D(&depth_texture_desc, nullptr, depth_texture_ptr_.GetAddressOf());
+
+	if (FAILED(call_result_))
+		throw LECoreException("<D3D11 ERROR> <Depth texture creation failed> ", "LECore.cpp", __LINE__, call_result_);
+
+	view_desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+
+	// Creating depth stencil view using previously created texture
+
+	call_result_ = device_ptr_->CreateDepthStencilView(depth_texture_ptr_.Get(), &view_desc, default_dsv_ptr_.GetAddressOf());
 
 	if (FAILED(call_result_))
 		throw LECoreException("<D3D11 ERROR> <Stencil view creation failed> ", "LECore.cpp", __LINE__, call_result_);
@@ -128,7 +149,7 @@ void LightEngine::Core::setup_frame_buffer(const uint16_t width, const uint16_t 
 
 	// Creating unordered access view
 
-	static D3D11_UNORDERED_ACCESS_VIEW_DESC uav_desc = {};
+	/*static D3D11_UNORDERED_ACCESS_VIEW_DESC uav_desc = {};
 
 	uav_desc.Texture2D.MipSlice = 0;
 	uav_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -137,7 +158,7 @@ void LightEngine::Core::setup_frame_buffer(const uint16_t width, const uint16_t 
 	call_result_ = device_ptr_->CreateUnorderedAccessView(back_buffer_ptr_.Get(), &uav_desc, frame_buffer_uav_ptr_.GetAddressOf());
 
 	if (FAILED(call_result_))
-		throw LECoreException("<D3D11 ERROR> <Unordered access view creation failed> ", "LECore.cpp", __LINE__, call_result_);
+		throw LECoreException("<D3D11 ERROR> <Unordered access view creation failed> ", "LECore.cpp", __LINE__, call_result_);*/
 
 	// Binding required "frame buffer connected" views to output merger 
 
@@ -145,15 +166,15 @@ void LightEngine::Core::setup_frame_buffer(const uint16_t width, const uint16_t 
 
 }
 
-void LightEngine::Core::cs_bind_frame_buffer(const uint16_t slot) {
-	release_render_targets();
-	context_ptr_->CSSetUnorderedAccessViews(slot, 1u, frame_buffer_uav_ptr_.GetAddressOf(), nullptr);
-}
-
-void LightEngine::Core::cs_unbind_frame_buffer(const uint16_t slot) {
-	static ID3D11UnorderedAccessView *const null_uav_ptr = {0};
-	context_ptr_->CSSetUnorderedAccessViews(slot, 1u, &null_uav_ptr, nullptr);
-}
+//void LightEngine::Core::cs_bind_frame_buffer(const uint16_t slot) {
+//	release_render_targets();
+//	//context_ptr_->CSSetUnorderedAccessViews(slot, 1u, frame_buffer_uav_ptr_.GetAddressOf(), nullptr);
+//}
+//
+//void LightEngine::Core::cs_unbind_frame_buffer(const uint16_t slot) {
+//	static ID3D11UnorderedAccessView *const null_uav_ptr = {0};
+//	context_ptr_->CSSetUnorderedAccessViews(slot, 1u, &null_uav_ptr, nullptr);
+//}
 
 void LightEngine::Core::present_frame() {
 	call_result_ = swap_chain_ptr_->Present(1u, 0u);
@@ -242,13 +263,15 @@ void LightEngine::Core::release_render_targets() {
 }
 
 void LightEngine::Core::render_to_textures() {
-	context_ptr_->OMSetRenderTargets(D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT, render_targets, frame_buffer_dsv_ptr_.Get());
+	rendering_to_frame_buffer_ = false;
+	context_ptr_->OMSetRenderTargets(D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT, render_targets, default_dsv_ptr_.Get());
 }
 
 void LightEngine::Core::clear_frame_buffer(float r, float g, float b, float a) const {
 	static float color[] = { r, g, b, a };
 	context_ptr_->ClearRenderTargetView(frame_buffer_rtv_ptr_.Get(), color);
 	context_ptr_->ClearDepthStencilView(frame_buffer_dsv_ptr_.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0u);
+	
 }
 
 void LightEngine::Core::flush_render_targets() const {
@@ -258,6 +281,8 @@ void LightEngine::Core::flush_render_targets() const {
 	for (int i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
 		if(render_targets[i] != nullptr)
 			context_ptr_->ClearRenderTargetView(render_targets[i], clear_values);
+
+	context_ptr_->ClearDepthStencilView(default_dsv_ptr_.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0u);
 }
 
 Microsoft::WRL::ComPtr<ID3D11Device> LightEngine::Core::get_device_ptr() { return device_ptr_; }

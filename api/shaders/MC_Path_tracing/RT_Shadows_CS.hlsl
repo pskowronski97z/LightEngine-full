@@ -1,12 +1,20 @@
+struct Light
+{
+    float4 position_;
+    float4 color_;
+};
+
+Light light_0 : register(b0);
 Texture2D<float4> GEOMETRY_TRIS_V0_S : register(t0);
 Texture2D<float4> GEOMETRY_TRIS_V1_S : register(t1);
 Texture2D<float4> GEOMETRY_TRIS_V2_S : register(t2);
-
 Texture2D<float4> WORLD_POSITIONS : register(t3);
 Texture2D<float4> NORMALS : register(t4);
-
 RWTexture2D<unorm float4> FRAME_BUFFER : register(u0);
 
+
+
+groupshared float is_lighted = 1.0;
 
 float3 ray_tris_intersection(float3 ray_origin, float3 ray_direction, float3 v_0, float3 v_1, float3 v_2) {
     
@@ -39,26 +47,30 @@ float3 ray_tris_intersection(float3 ray_origin, float3 ray_direction, float3 v_0
     return float3(t_value, u_coord, v_coord);
 }
 
-[numthreads(1, 1, 1)]
-void main(uint3 groupID : SV_GroupID) {   
+[numthreads(14, 1, 1)]
+void main(uint3 groupID : SV_GroupID, uint3 groupThreadID : SV_GroupThreadID) {   
     
-    float3 light_position = float3(0.0, 40.0, 0.0);
-    float3 l = light_position - WORLD_POSITIONS[groupID.xy];
+    float3 light_position = light_0.position_.xyz;
+
+    float3 l = light_position - WORLD_POSITIONS[groupID.xy].xyz;
     float distance = length(l);
     float attenuation = 1.0 / (distance * distance);
     
     l = normalize(l);
     
-    float3 tuv = ray_tris_intersection(WORLD_POSITIONS[groupID.xy], l, GEOMETRY_TRIS_V0_S[uint2(0, 0)], GEOMETRY_TRIS_V1_S[uint2(0, 0)], GEOMETRY_TRIS_V2_S[uint2(0, 0)]);
+    float3 tuv = ray_tris_intersection(
+        WORLD_POSITIONS[groupID.xy].xyz,
+        l, 
+        GEOMETRY_TRIS_V0_S[uint2(groupThreadID.x, 0)].xyz,
+        GEOMETRY_TRIS_V1_S[uint2(groupThreadID.x, 0)].xyz,
+        GEOMETRY_TRIS_V2_S[uint2(groupThreadID.x, 0)].xyz);
     
-    float intensity;
+	if (!((tuv.z == -1.0) || (tuv.x < 0.001)))
+        is_lighted *= 0.5;
     
-    if(tuv.z == -1.0)
-        intensity = 1000.0f;
-    else 
-        intensity = 0;
+    GroupMemoryBarrierWithGroupSync();
     
-    if (WORLD_POSITIONS[groupID.xy].w == 1.0)
-        FRAME_BUFFER[groupID.xy] = float4(1.0, 1.0, 1.0, 1.0) * intensity * attenuation * max(0.0f, dot(l, NORMALS[groupID.xy]));;
+    if ((WORLD_POSITIONS[groupID.xy].w == 1.0)  && (groupThreadID.x == 0))
+        FRAME_BUFFER[groupID.xy] = light_0.color_ * light_0.color_.w * is_lighted * attenuation * max(0.0, dot(l, NORMALS[groupID.xy].xyz));
    
 }
