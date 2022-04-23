@@ -1,7 +1,5 @@
 // This shader calculates diffuse lighting values using Lambert's law.
 
-Texture2D<float4> normals : register(t0);
-
 struct PixelShaderInput {
     float4 position_: SV_POSITION;
     float4 color_ : VT3_COLOR;
@@ -20,6 +18,7 @@ struct LightSource {
 };
 
 LightSource light_source : register(b0);
+Texture2D<float4> shadow_map : register(t0);
 
 float4 main(PixelShaderInput input_pixel) : SV_TARGET {
     
@@ -31,6 +30,7 @@ float4 main(PixelShaderInput input_pixel) : SV_TARGET {
     light_ray = normalize(light_ray);
     
     float3 pixel_lighting = light_source.color_ * light_source.color_.w * attenuation * max(0.0, dot(light_ray, input_pixel.normal_.xyz));
+    pixel_lighting *= shadow_map[input_pixel.position_.xy].x;
     pixel_lighting = pixel_lighting / (pixel_lighting + 1.0f); // Conversion to HDR
     pixel_lighting = pow(pixel_lighting, 0.8f); // Gamma correction
     

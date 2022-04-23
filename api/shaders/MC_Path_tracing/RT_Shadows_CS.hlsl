@@ -1,16 +1,15 @@
-struct Light
-{
+// Light source data is expected to be stored in b0 register and to be a structure which consists of two 4D vectors of floats
+struct LightSource {
     float4 position_;
     float4 color_;
 };
 
-Light light_0 : register(b0);
-Texture2D<float4> GEOMETRY_TRIS_V0_S : register(t0);
-Texture2D<float4> GEOMETRY_TRIS_V1_S : register(t1);
-Texture2D<float4> GEOMETRY_TRIS_V2_S : register(t2);
-Texture2D<float4> WORLD_POSITIONS : register(t3);
-Texture2D<float4> NORMALS : register(t4);
-RWTexture2D<unorm float4> FRAME_BUFFER : register(u0);
+LightSource light_source : register(b0);
+Texture2D<float4> geometry_tris_v0 : register(t0);
+Texture2D<float4> geometry_tris_v1 : register(t1);
+Texture2D<float4> geometry_tris_v2 : register(t2);
+Texture2D<float4> pixel_positions : register(t3);
+RWTexture2D<float4> shadow_map : register(u0);
 
 
 
@@ -50,27 +49,27 @@ float3 ray_tris_intersection(float3 ray_origin, float3 ray_direction, float3 v_0
 [numthreads(14, 1, 1)]
 void main(uint3 groupID : SV_GroupID, uint3 groupThreadID : SV_GroupThreadID) {   
     
-    float3 light_position = light_0.position_.xyz;
+    float3 light_position = light_source.position_.xyz;
 
-    float3 l = light_position - WORLD_POSITIONS[groupID.xy].xyz;
+    float3 l = light_position - pixel_positions[groupID.xy].xyz;
     float distance = length(l);
     float attenuation = 1.0 / (distance * distance);
     
     l = normalize(l);
     
     float3 tuv = ray_tris_intersection(
-        WORLD_POSITIONS[groupID.xy].xyz,
+        pixel_positions[groupID.xy].xyz,
         l, 
-        GEOMETRY_TRIS_V0_S[uint2(groupThreadID.x, 0)].xyz,
-        GEOMETRY_TRIS_V1_S[uint2(groupThreadID.x, 0)].xyz,
-        GEOMETRY_TRIS_V2_S[uint2(groupThreadID.x, 0)].xyz);
+        geometry_tris_v0[uint2(groupThreadID.x, 0)].xyz,
+        geometry_tris_v1[uint2(groupThreadID.x, 0)].xyz,
+        geometry_tris_v2[uint2(groupThreadID.x, 0)].xyz);
     
 	if (!((tuv.z == -1.0) || (tuv.x < 0.001)))
-        is_lighted *= 0.5;
+        is_lighted *= 0.0;
     
-    GroupMemoryBarrierWithGroupSync();
+    GroupMemoryBarrier();
     
-    if ((WORLD_POSITIONS[groupID.xy].w == 1.0)  && (groupThreadID.x == 0))
-        FRAME_BUFFER[groupID.xy] = light_0.color_ * light_0.color_.w * is_lighted * attenuation * max(0.0, dot(l, NORMALS[groupID.xy].xyz));
-   
+    if(groupThreadID.x == 0)
+        shadow_map[groupID.xy] = float4(is_lighted, 0.0, 0.0, 0.0);
+    
 }

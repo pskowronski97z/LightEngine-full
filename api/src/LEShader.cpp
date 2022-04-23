@@ -272,7 +272,7 @@ bool LightEngine::ShaderResourceManager::bind_cs_unordered_access_buffer(Abstrac
 	return true;
 }
 
-bool LightEngine::ShaderResourceManager::unbind_texture_buffer(ShaderType shader_type, uint8_t slot) const {
+bool LightEngine::ShaderResourceManager::unbind_texture_buffer(const ShaderType shader_type, const uint8_t slot) const {
 	
 	static ID3D11ShaderResourceView* const null_srv = 0;
 
@@ -313,7 +313,7 @@ bool LightEngine::ShaderResourceManager::unbind_texture_buffer(ShaderType shader
 	return true;
 }
 
-bool LightEngine::ShaderResourceManager::unbind_cs_unordered_access_buffer(uint8_t slot) const {
+bool LightEngine::ShaderResourceManager::unbind_cs_unordered_access_buffer(const uint8_t slot) const {
 	
 	static ID3D11UnorderedAccessView* const null_uav = 0;
 
@@ -322,6 +322,49 @@ bool LightEngine::ShaderResourceManager::unbind_cs_unordered_access_buffer(uint8
 
 	core_ptr_->get_context_ptr()->CSSetUnorderedAccessViews(slot, 1, &null_uav, nullptr);
 	return true;
+
+}
+
+bool LightEngine::ShaderResourceManager::unbind_constant_buffer(const ShaderType shader_type, const uint8_t slot) const {
+
+	static ID3D11Buffer* const null_buffer = 0;
+
+	if (!valid_slot(slot, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT))
+		return false;
+
+	switch (shader_type) {
+
+	case ShaderType::VertexShader:
+		core_ptr_->get_context_ptr()->VSSetConstantBuffers(slot, 1, &null_buffer);
+		break;
+
+	case ShaderType::GeometryShader:
+		core_ptr_->get_context_ptr()->GSSetConstantBuffers(slot, 1, &null_buffer);
+		break;
+
+	case ShaderType::HullShader:
+		core_ptr_->get_context_ptr()->HSSetConstantBuffers(slot, 1, &null_buffer);
+		break;
+
+	case ShaderType::DomainShader:
+		core_ptr_->get_context_ptr()->DSSetConstantBuffers(slot, 1, &null_buffer);
+		break;
+
+	case ShaderType::PixelShader:
+		core_ptr_->get_context_ptr()->PSSetConstantBuffers(slot, 1, &null_buffer);
+		break;
+
+	case ShaderType::ComputeShader:
+		core_ptr_->get_context_ptr()->CSSetConstantBuffers(slot, 1, &null_buffer);
+		break;
+
+	default:
+		return false;
+		break;
+	}
+
+	return true;
+
 
 }
 

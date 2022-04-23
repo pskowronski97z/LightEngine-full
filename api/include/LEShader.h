@@ -188,9 +188,9 @@ namespace LightEngine {
 		template<class T>
 		bool bind_constant_buffer(CBuffer<T> &cbuffer, const ShaderType shader_type, const uint8_t slot) const;
 		//void bind_sampler_buffer(uint8_t slot);
-		bool unbind_texture_buffer(ShaderType shader_type, uint8_t slot) const;
-		bool unbind_cs_unordered_access_buffer(uint8_t slot) const;
-		//void unbind_constant_buffer(uint8_t slot);
+		bool unbind_texture_buffer(const ShaderType shader_type, const uint8_t slot) const;
+		bool unbind_cs_unordered_access_buffer(const uint8_t slot) const;
+		bool unbind_constant_buffer(const ShaderType shader_type, const uint8_t slot) const;
 		//void unbind_sampler_buffer(uint8_t slot);
 	};
 	

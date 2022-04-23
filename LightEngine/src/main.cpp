@@ -103,7 +103,7 @@ int main(int argc, const char **argv) {
 		LightEngine::Texture2D pixel_bitangent(core, "Pixel bitangent", res_w, res_h, blank);
 		LightEngine::Texture2D pixel_uvw(core, "Pixel texture coords", res_w, res_h, blank);
 		LightEngine::Texture2D pixel_color(core, "Pixel color", res_w, res_h, blank);
-
+		LightEngine::Texture2D shadow_map(core, "Ray traced shadow map", res_w, res_h, blank);
 		
 
 		
@@ -208,7 +208,7 @@ int main(int argc, const char **argv) {
 		//std::vector<LightEngine::Geometry<LightEngine::Vertex3>> test_scene = LightEngine::Geometry<LightEngine::Vertex3>::load_from_obj(core, "B:\\CG Projects\\objects\\scene.obj");
 		//scene.push_back(test_plane);
 		//scene.push_back(test_plane_1);
-		//scene.push_back(scene_objs[0]);
+		scene.push_back(scene_objs[0]);
 
 
 		static std::vector<LightEngine::Vertex3> tris_v0s(0);
@@ -232,9 +232,9 @@ int main(int argc, const char **argv) {
 		LightEngine::Texture2D v1s_tex = LightEngine::Texture2D::store_geometry(core, tris_v1s);
 		LightEngine::Texture2D v2s_tex = LightEngine::Texture2D::store_geometry(core, tris_v2s);
 
-		//sr_manager.bind_texture_buffer(v0s_tex, LightEngine::ShaderType::ComputeShader, 0u);
-		//sr_manager.bind_texture_buffer(v1s_tex, LightEngine::ShaderType::ComputeShader, 1u);
-		//sr_manager.bind_texture_buffer(v2s_tex, LightEngine::ShaderType::ComputeShader, 2u);
+		sr_manager.bind_texture_buffer(v0s_tex, LightEngine::ShaderType::ComputeShader, 0u);
+		sr_manager.bind_texture_buffer(v1s_tex, LightEngine::ShaderType::ComputeShader, 1u);
+		sr_manager.bind_texture_buffer(v2s_tex, LightEngine::ShaderType::ComputeShader, 2u);
 
 		
 
@@ -680,8 +680,8 @@ int main(int argc, const char **argv) {
 				
 				for (int i = 0; i < scene.size(); i++) {
 					
-					scene[i].bind_topology();
-					scene[i].bind_vertex_buffer();
+					// Clear all textures that will be used as render targets
+					core->flush_render_targets();
 
 					// Bind pixel shader which will generate pixel data and store it in textures
 					pixel_data_generate.bind();
@@ -689,25 +689,63 @@ int main(int argc, const char **argv) {
 					// Use rendering to texture mode
 					core->render_to_textures();
 
-					// Clear all textures that will be used as render targets
-					core->flush_render_targets();
+					scene[i].bind_topology();
+					scene[i].bind_vertex_buffer();
 
 					// Run first pass to generate data
 					scene[i].draw(0);
 
-					// Use rendering to frame buffer mode
+
+
+					// Use rendering to frame buffer mode - releasing all resources to use in CS
 					core->render_to_frame_buffer();
+
+					// Unbind light source from PS
+					sr_manager.unbind_constant_buffer(LightEngine::ShaderType::PixelShader, 0u);
+
+					// Bind light source to CS as input
+					sr_manager.bind_constant_buffer(point_light_cbuff, LightEngine::ShaderType::ComputeShader, 0u);
+
+					// Bind pixels positions to CS as input
+					sr_manager.bind_texture_buffer(pixel_world_position, LightEngine::ShaderType::ComputeShader, 3u);
+
+					// Bind shadow map to CS as output
+					sr_manager.bind_cs_unordered_access_buffer(shadow_map, 0u);
+
+					cs_.bind();
+					// Run CS
+					cs_.run(res_w, res_h, 1u);
+
+
+
+
+					// Unbind light source from CS 
+					sr_manager.unbind_constant_buffer(LightEngine::ShaderType::ComputeShader, 0u);
+
+					// Bind light source to PS
+					sr_manager.bind_constant_buffer(point_light_cbuff, LightEngine::ShaderType::PixelShader, 0u);
+
+					// Unbind shadow map from CS
+					sr_manager.unbind_cs_unordered_access_buffer(0u);
+
+					// Bind shadow map to PS as input
+					sr_manager.bind_texture_buffer(shadow_map, LightEngine::ShaderType::PixelShader, 0u);
 
 					// Bind pixel shader for lighting/shading 
 					lambert_diffuse_ps.bind();
 
-					sr_manager.bind_texture_buffer(pixel_normal, LightEngine::ShaderType::PixelShader, 0u);
-	
 					// Run second (final) pass to render image in frame buffer
 					scene[i].draw(0);
 
+					
+
+					// Unbind shadow map from PS
 					sr_manager.unbind_texture_buffer(LightEngine::ShaderType::PixelShader, 0u);
-							
+
+					// Unbind pixel positions texture from PS for using it as render target in next itr
+					sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 3u);
+
+
 				}			
 
 				// Releasing textures for usage as shader resources
@@ -727,7 +765,7 @@ int main(int argc, const char **argv) {
 				//sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 4u);
 
 				// Setting frame buffer as render target to draw GUI elements
-				//ore->render_to_frame_buffer();
+				// core->render_to_frame_buffer();
 				ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());				
 				
 				core->present_frame();			
