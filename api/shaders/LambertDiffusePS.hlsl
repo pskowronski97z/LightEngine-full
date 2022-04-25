@@ -30,7 +30,7 @@ float4 main(PixelShaderInput input_pixel) : SV_TARGET {
     light_ray = normalize(light_ray);
     
     float3 pixel_lighting = light_source.color_ * light_source.color_.w * attenuation * max(0.0, dot(light_ray, input_pixel.normal_.xyz));
-    pixel_lighting *= shadow_map[input_pixel.position_.xy].x;
+    //pixel_lighting *= shadow_map[input_pixel.position_.xy].x;
     pixel_lighting = pixel_lighting / (pixel_lighting + 1.0f); // Conversion to HDR
     pixel_lighting = pow(pixel_lighting, 0.8f); // Gamma correction
     

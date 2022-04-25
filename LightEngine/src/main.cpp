@@ -39,6 +39,8 @@ std::vector<float> create_test_texture_3d(int width, int height){
 
 //Path to a directory where all compiled HLSL shaders (from "shaders" directory) are placed
 constexpr auto COMPILED_SHADERS_DIR = L"C:\\Users\\User\\source\\repos\\LightEngine v2\\LightEngine-full\\bin\\x64\\Debug\\compiled shaders\\";
+//constexpr auto COMPILED_SHADERS_DIR = L"B:\\source\\repos\\LightEngine v2\\LightEngine-full\\bin\\x64\\Debug\\compiled shaders\\";
+
 
 int main(int argc, const char **argv) {
 
@@ -78,7 +80,6 @@ int main(int argc, const char **argv) {
 		
 		//LightEngine::VertexShader hud_vs(core, shader_directory + L"ViewportHUD_VS.cso");
 		//LightEngine::VertexShader shadow_mapping_vs(core, shader_directory + L"ShadowMappingVS.cso");
-
 		//LightEngine::PixelShader blinn_ps(core, shader_directory + L"BlinnPS.cso");
 		//LightEngine::PixelShader phong_ps(core, shader_directory + L"PhongPS.cso");
 		//LightEngine::PixelShader gouraud_ps(core, shader_directory + L"GouraudPS.cso");
@@ -91,6 +92,7 @@ int main(int argc, const char **argv) {
 		LightEngine::PixelShader pixel_data_generate(core, shader_directory + L"GeneratePixelDataPS.cso");
 		LightEngine::PixelShader lambert_diffuse_ps(core, shader_directory + L"LambertDiffusePS.cso");
 		LightEngine::ComputeShader cs_(core, shader_directory + L"RT_Shadows_CS.cso");
+		LightEngine::ComputeShader path_tracing_cs(core, shader_directory + L"MonteCarloGI_CS.cso");
 
 		static float blank[res_w * res_h * 4];
 		ZeroMemory(blank, res_w * res_h * 4);
@@ -104,7 +106,7 @@ int main(int argc, const char **argv) {
 		LightEngine::Texture2D pixel_uvw(core, "Pixel texture coords", res_w, res_h, blank);
 		LightEngine::Texture2D pixel_color(core, "Pixel color", res_w, res_h, blank);
 		LightEngine::Texture2D shadow_map(core, "Ray traced shadow map", res_w, res_h, blank);
-		
+		LightEngine::Texture2D rays(core, "Random rays", res_w, res_h, blank);
 
 		
 		
@@ -119,8 +121,6 @@ int main(int argc, const char **argv) {
 
 		//core->add_texture_to_render(world_position_data, 0u);
 		//core->add_texture_to_render(normal_data, 1u);
-
-
 		//sr_manager.bind_texture_buffer(texture_a, LightEngine::ShaderType::ComputeShader, 2u);
 		//sr_manager.bind_texture_buffer(texture_b, LightEngine::ShaderType::ComputeShader, 3u);
 		//sr_manager.bind_cs_unordered_access_buffer(output_texture, 0u);
@@ -128,11 +128,10 @@ int main(int argc, const char **argv) {
 		//sr_manager.unbind_cs_unordered_access_buffer(0u);
 		//output_texture.generate_mip_maps();
 		//sr_manager.bind_texture_buffer(output_texture, LightEngine::ShaderType::PixelShader, 0u);
-
-		/*std::shared_ptr<LightEngine::PixelShader> blinn_ps_ptr = std::make_shared<LightEngine::PixelShader>(blinn_ps);
-		std::shared_ptr<LightEngine::PixelShader> phong_ps_ptr = std::make_shared<LightEngine::PixelShader>(phong_ps);
-		std::shared_ptr<LightEngine::PixelShader> gouraud_ps_ptr = std::make_shared<LightEngine::PixelShader>(gouraud_ps);
-		std::shared_ptr<LightEngine::PixelShader> pbr_ps_ptr = std::make_shared<LightEngine::PixelShader>(pbr_ps);*/
+		//std::shared_ptr<LightEngine::PixelShader> blinn_ps_ptr = std::make_shared<LightEngine::PixelShader>(blinn_ps);
+		//std::shared_ptr<LightEngine::PixelShader> phong_ps_ptr = std::make_shared<LightEngine::PixelShader>(phong_ps);
+		//std::shared_ptr<LightEngine::PixelShader> gouraud_ps_ptr = std::make_shared<LightEngine::PixelShader>(gouraud_ps);
+		//std::shared_ptr<LightEngine::PixelShader> pbr_ps_ptr = std::make_shared<LightEngine::PixelShader>(pbr_ps);
 		//std::shared_ptr<LightEngine::PixelShader> mc_gi_ptr = std::make_shared<LightEngine::PixelShader>(mc_gi);
 
 
@@ -141,36 +140,29 @@ int main(int argc, const char **argv) {
 
 		LightEngine::ArcballCamera arcball_camera(core, 50.0);
 		//LightEngine::ArcballCamera light_camera(core, 50.0);
-
 		//LightEngine::LightSource point_light(core, 1.0);
-		//LightEngine::LightSource direct_light(core, 0.0);
-	
+		//LightEngine::LightSource direct_light(core, 0.0);	
 		//LightEngine::Materials::BasicMaterial default_material(core, "Default00");
 		//LightEngine::Materials::PBRMaterial pbr_material(core, "PBR_Metallic_Roughness");
 		LightEngine::Sampler sampler_nearest(core, LightEngine::Sampler::Filtering::NEAREST);
 		LightEngine::Sampler sampler_bilinear(core, LightEngine::Sampler::Filtering::BILINEAR);
 		LightEngine::Sampler sampler_trilinear(core, LightEngine::Sampler::Filtering::TRILINEAR);
 		LightEngine::Sampler sampler_anisotropic(core, LightEngine::Sampler::Filtering::ANISOTROPIC);
-		//LightEngine::RenderableTexture shadow_map(core, "Shadow map", 512, 512);
-		
-		
-		/*LightEngineUI::Backend::BrowserModel<LightEngine::StaticTexture> texture_browser_model;
+
+		/*
+		LightEngineUI::Backend::BrowserModel<LightEngine::StaticTexture> texture_browser_model;
 		LightEngineUI::Backend::BrowserModel<LightEngine::Materials::BasicMaterial> bm_browser_model;
 		std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::Materials::BasicMaterial>> bm_browser_model_ptr = std::make_shared<LightEngineUI::Backend::BrowserModel<LightEngine::Materials::BasicMaterial>>(bm_browser_model);
 		std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::StaticTexture>> tbm_ptr = std::make_shared<LightEngineUI::Backend::BrowserModel<LightEngine::StaticTexture>>(texture_browser_model);
 		LightEngineUI::Frontend::TextureBrowser texture_browser(tbm_ptr,core);
 		LightEngineUI::Frontend::MaterialEditor material_editor(tbm_ptr);
-		LightEngineUI::Frontend::BasicMaterialsBrowser bm_browser(bm_browser_model_ptr,core);*/
-
-
-
-		/*std::vector<LightEngine::Vertex3> border_vertices{
+		LightEngineUI::Frontend::BasicMaterialsBrowser bm_browser(bm_browser_model_ptr,core);
+		std::vector<LightEngine::Vertex3> border_vertices{
 			{{-0.99,0.99,0.0},{0.4,0.4,0.4,1.0}},
 			{{0.99,0.99,0.0},{0.4,0.4,0.4,1.0}},
 			{{0.99,-0.99,0.0},{0.4,0.4,0.4,1.0}},
 			{{-0.99,-0.99,0.0},{0.4,0.4,0.4,1.0}},
 			{{-0.99,0.99,0.0},{0.4,0.4,0.4,1.0}}};
-
 		std::vector<LightEngine::Vertex3> shadow_map_display_vertices{
 			{{-0.99,-0.99,0.0},{0.4,0.4,0.4,-1.0},{0,1,0}},
 			{{-0.99,0.0,0.0},{0.4,0.4,0.4,-1.0},{0,0,0}},
@@ -195,11 +187,9 @@ int main(int argc, const char **argv) {
 			{{35.0, 0.0, -35.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}}
 		};
 
-		//LightEngine::Texture2D test_plane_tex = LightEngine::Texture2D::store_geometry(core, test_plane_vtx);
-		
-		/*LightEngine::Geometry<LightEngine::Vertex3> viewport_border(core, border_vertices, D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP, "border");
-		LightEngine::Geometry<LightEngine::Vertex3> shadow_map_display(core, shadow_map_display_vertices, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP,"shadow_map_display");
-		*/
+		//LightEngine::Texture2D test_plane_tex = LightEngine::Texture2D::store_geometry(core, test_plane_vtx);	
+		//LightEngine::Geometry<LightEngine::Vertex3> viewport_border(core, border_vertices, D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP, "border");
+		//LightEngine::Geometry<LightEngine::Vertex3> shadow_map_display(core, shadow_map_display_vertices, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP,"shadow_map_display");	
 		//LightEngine::Geometry<LightEngine::Vertex3> test_plane(core, test_plane_vtx, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, "test_plane");
 		//LightEngine::Geometry<LightEngine::Vertex3> test_plane_1(core, test_plane_1_vtx, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, "test_plane");
 
@@ -245,21 +235,18 @@ int main(int argc, const char **argv) {
 		std::shared_ptr<LightEngine::Materials::BasicMaterial> default_ptr = std::make_shared<LightEngine::Materials::BasicMaterial>(default_material);
 		std::shared_ptr<LightEngine::Materials::PBRMaterial> pbr_ptr = std::make_shared<LightEngine::Materials::PBRMaterial>(pbr_material);	
 
-		material_editor.load_material(default_ptr);*/
+		material_editor.load_material(default_ptr);
 
 		/*default_ptr->assign_vertex_shader(std::make_shared<LightEngine::VertexShader>(vs));
-		default_ptr->assign_pixel_shader(blinn_ps_ptr);*/
+		default_ptr->assign_pixel_shader(blinn_ps_ptr);
 
-		/*point_light.bind_ps_buffer(1);
+		point_light.bind_ps_buffer(1);
 		point_light.bind_vs_buffer(1);
 		direct_light.bind_ps_buffer(2);
 		direct_light.bind_vs_buffer(2);*/
 
 		sampler_anisotropic.bind(0);
 
-		/*direct_light.update();*/
-		
-		//arcball_camera.modify_center(0,7.0f,0);
 		arcball_camera.modify_horizontal_angle(-30.0f);
 		arcball_camera.modify_vertical_angle(30.0f);
 		arcball_camera.update_view_matrix();
@@ -267,17 +254,17 @@ int main(int argc, const char **argv) {
 		
 		arcball_camera.bind(0);
 
-		//light_camera.modify_center(0.0,0.0,1.0);
-		//light_camera.modify_horizontal_angle(-90.0f);
-		/*light_camera.set_clipping_near(lc_near_z);
+		/*light_camera.modify_center(0.0, 0.0, 1.0);
+		light_camera.modify_horizontal_angle(-90.0f);
+		light_camera.set_clipping_near(lc_near_z);
 		light_camera.set_clipping_far(lc_far_z);
 		light_camera.set_fov(lc_fov);
 		light_camera.update_view_matrix();
 		light_camera.update();
 		
-		light_camera.bind(4);*/
+		light_camera.bind(4);
 
-		//bind light-perspective camera
+		bind light-perspective camera*/
 
 		LightEngine::Light p0;
 		p0.position_.x = point_light_position[0];
@@ -296,9 +283,6 @@ int main(int argc, const char **argv) {
 		int vp_height = 0;
 		
 		vs.bind();
-		//data_generate.bind();
-		
-		
 
 		while (WM_QUIT != msg.message) {
 			
@@ -700,6 +684,7 @@ int main(int argc, const char **argv) {
 					// Use rendering to frame buffer mode - releasing all resources to use in CS
 					core->render_to_frame_buffer();
 
+					/*
 					// Unbind light source from PS
 					sr_manager.unbind_constant_buffer(LightEngine::ShaderType::PixelShader, 0u);
 
@@ -730,6 +715,22 @@ int main(int argc, const char **argv) {
 
 					// Bind shadow map to PS as input
 					sr_manager.bind_texture_buffer(shadow_map, LightEngine::ShaderType::PixelShader, 0u);
+					*/
+
+					sr_manager.bind_texture_buffer(pixel_world_position, LightEngine::ShaderType::ComputeShader, 0u);
+					sr_manager.bind_texture_buffer(pixel_normal, LightEngine::ShaderType::ComputeShader, 1u);
+					sr_manager.bind_texture_buffer(pixel_tangent, LightEngine::ShaderType::ComputeShader, 2u);
+					sr_manager.bind_texture_buffer(pixel_bitangent, LightEngine::ShaderType::ComputeShader, 3u);
+					sr_manager.bind_cs_unordered_access_buffer(rays, 0u);
+
+					path_tracing_cs.bind();
+					path_tracing_cs.run(res_w, res_h, 1u);
+
+					sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 0u);
+					sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 1u);
+					sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 2u);
+					sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 3u);
+					sr_manager.unbind_cs_unordered_access_buffer(0u);
 
 					// Bind pixel shader for lighting/shading 
 					lambert_diffuse_ps.bind();
@@ -738,34 +739,17 @@ int main(int argc, const char **argv) {
 					scene[i].draw(0);
 
 					
-
+					/*
 					// Unbind shadow map from PS
 					sr_manager.unbind_texture_buffer(LightEngine::ShaderType::PixelShader, 0u);
 
 					// Unbind pixel positions texture from PS for using it as render target in next itr
 					sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 3u);
-
+					*/
 
 				}			
 
-				// Releasing textures for usage as shader resources
-				//core->release_render_targets();
 				
-				// Binding data generated by PS to texture buffers in CS
-
-				//sr_manager.bind_texture_buffer(world_position_data, LightEngine::ShaderType::ComputeShader, 3u);
-				//sr_manager.bind_texture_buffer(normal_data, LightEngine::ShaderType::ComputeShader, 4u);
-
-				//core->cs_bind_frame_buffer(0u);
-				//cs_.bind();
-				//cs_.run(window.get_width(), window.get_height(), 1u);
-				//core->cs_unbind_frame_buffer(0u);
-
-				//sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 3u);
-				//sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 4u);
-
-				// Setting frame buffer as render target to draw GUI elements
-				// core->render_to_frame_buffer();
 				ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());				
 				
 				core->present_frame();			
