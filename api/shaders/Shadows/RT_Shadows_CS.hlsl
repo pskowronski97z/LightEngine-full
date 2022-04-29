@@ -67,7 +67,7 @@ void main(uint3 groupID : SV_GroupID, uint3 groupThreadID : SV_GroupThreadID) {
 	if (!((tuv.z == -1.0) || (tuv.x < 0.001)))
         is_lighted *= 0.0;
     
-    GroupMemoryBarrier();
+    GroupMemoryBarrierWithGroupSync();
     
     if(groupThreadID.x == 0)
         shadow_map[groupID.xy] = float4(is_lighted, 0.0, 0.0, 0.0);

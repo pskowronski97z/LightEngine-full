@@ -1,3 +1,5 @@
+#include "MC_Properties.hlsli"
+
 // This shader calculates diffuse lighting values using Lambert's law.
 
 struct PixelShaderInput {
@@ -19,17 +21,28 @@ struct LightSource {
 
 LightSource light_source : register(b0);
 Texture2D<float4> shadow_map : register(t0);
+Texture3D<float4> global_illumination : register(t1);
 
 float4 main(PixelShaderInput input_pixel) : SV_TARGET {
     
     input_pixel.normal_ = normalize(input_pixel.normal_);
     float3 light_ray = light_source.position_.xyz - input_pixel.world_position_.xyz;
     float distance = length(light_ray);
-    float attenuation = 1.0 / (distance * distance);
+    float attenuation = 1.0 / ((distance + 1.0) * (distance + 1.0));
     
     light_ray = normalize(light_ray);
     
     float3 pixel_lighting = light_source.color_ * light_source.color_.w * attenuation * max(0.0, dot(light_ray, input_pixel.normal_.xyz));
+    
+    float3 indirect_lighting = float3(0.0, 0.0, 0.0);
+    
+    for (int i = 0; i < SAMPLES_COUNT; i++)
+        indirect_lighting += global_illumination[uint3(input_pixel.position_.xy, i)].xyz;
+
+    indirect_lighting /= SAMPLES_COUNT;
+    
+    pixel_lighting = pixel_lighting + indirect_lighting;
+    
     //pixel_lighting *= shadow_map[input_pixel.position_.xy].x;
     pixel_lighting = pixel_lighting / (pixel_lighting + 1.0f); // Conversion to HDR
     pixel_lighting = pow(pixel_lighting, 0.8f); // Gamma correction
