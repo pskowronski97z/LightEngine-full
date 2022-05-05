@@ -31,8 +31,11 @@ float3 lambert_diffuse(float3 pixel_position, float3 pixel_normal, float3 pixel_
     float attenuation = 1.0 / ((distance + 1.0) * (distance + 1.0));
     
     light_ray = normalize(light_ray);
-      
-    return pixel_color * point_light.color_.xyz * point_light.color_.w * max(0.0, attenuation) * max(0.0, dot(light_ray, pixel_normal));
+    
+    float intensity = point_light.color_.w * attenuation * max(0.0, dot(light_ray, pixel_normal));
+    float3 color = pixel_color * point_light.color_.xyz;
+    
+    return color * intensity;
 }
 
 [numthreads(SAMPLES_COUNT, 1, 1)]
@@ -40,16 +43,19 @@ void main(uint3 groupID : SV_GroupID, uint3 groupThreadID : SV_GroupThreadID) {
     
     float4 tuv = in_out_data[uint3(groupID.xy, groupThreadID.x)];
     
-    if (tuv.x != -1.0) {
+    if (tuv.x > 0.0) {
 
-        float3 v0 = geometry_tris_v0[uint2(tuv.w, 0)].xyz;
-        float3 v1 = geometry_tris_v1[uint2(tuv.w, 0)].xyz;
-        float3 v2 = geometry_tris_v2[uint2(tuv.w, 0)].xyz;
-    
-        float3 v0_n = geometry_tris_v0[uint2(tuv.w, 3)].xyz;
-        float3 v1_n = geometry_tris_v1[uint2(tuv.w, 3)].xyz;
-        float3 v2_n = geometry_tris_v2[uint2(tuv.w, 3)].xyz;
+        uint2 triangle_index = uint2(tuv.w, 0);
         
+        float3 v0 = geometry_tris_v0[triangle_index].xyz;
+        float3 v1 = geometry_tris_v1[triangle_index].xyz;
+        float3 v2 = geometry_tris_v2[triangle_index].xyz;
+    
+        triangle_index.y = 3;
+        
+        float3 v0_n = geometry_tris_v0[triangle_index].xyz;
+        float3 v1_n = geometry_tris_v1[triangle_index].xyz;
+        float3 v2_n = geometry_tris_v2[triangle_index].xyz;
         
         float3 intersection_pos = (1.0 - tuv.y - tuv.z) * v0 + tuv.y * v1 + tuv.z * v2;
         float3 intersection_n = normalize((1.0 - tuv.y - tuv.z) * v0_n + tuv.y * v1_n + tuv.z * v2_n);

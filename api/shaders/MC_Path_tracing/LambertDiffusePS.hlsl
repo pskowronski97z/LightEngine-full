@@ -32,7 +32,8 @@ float4 main(PixelShaderInput input_pixel) : SV_TARGET {
     
     light_ray = normalize(light_ray);
     
-    float3 pixel_lighting = light_source.color_ * light_source.color_.w * attenuation * max(0.0, dot(light_ray, input_pixel.normal_.xyz));
+    float intensity = light_source.color_.w * attenuation * max(0.0, dot(light_ray, input_pixel.normal_.xyz));
+    float3 pixel_lighting = light_source.color_ * intensity;
     
     float3 indirect_lighting = float3(0.0, 0.0, 0.0);
     
