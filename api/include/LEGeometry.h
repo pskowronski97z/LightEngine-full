@@ -23,7 +23,7 @@ namespace LightEngine {
 		// Performs the Gram-Schmidt orthogonalization of a "v" vector to a "base" vector
 		static DirectX::XMVECTOR orthogonalize(DirectX::XMFLOAT3 base, DirectX::XMFLOAT3 v);
 	public:
-		static std::vector<Geometry<T>> load_from_obj(std::shared_ptr<Core> core_ptr, std::string filename);
+		static std::vector<Geometry<T>> load_from_obj(std::shared_ptr<Core> core_ptr, std::string filename, const float **colors_array, const uint32_t colors_array_size);
 		Geometry(std::shared_ptr<Core> core_ptr, std::vector<T> vertices, D3D11_PRIMITIVE_TOPOLOGY topology, std::string name);
 		// This method stores triangles using three textures. 
 		//void to_texture(Texture2D &v0_s, Texture2D &v1_s, Texture2D &v2_s);

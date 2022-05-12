@@ -33,7 +33,8 @@ float4 main(PixelShaderInput input_pixel) : SV_TARGET {
     light_ray = normalize(light_ray);
     
     float intensity = light_source.color_.w * attenuation * max(0.0, dot(light_ray, input_pixel.normal_.xyz));
-    float3 pixel_lighting = light_source.color_ * intensity;
+    float3 pixel_lighting = light_source.color_.xyz * input_pixel.color_.xyz;
+    pixel_lighting *= intensity;
     
     float3 indirect_lighting = float3(0.0, 0.0, 0.0);
     
@@ -49,5 +50,5 @@ float4 main(PixelShaderInput input_pixel) : SV_TARGET {
     pixel_lighting = pow(pixel_lighting, 0.8f); // Gamma correction
     
     return float4(pixel_lighting, 1.0);
-
+   
 }

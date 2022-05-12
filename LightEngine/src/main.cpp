@@ -16,6 +16,7 @@
 #include <LEFrontend.h>
 #include <LEBackend.h>
 #include <../shaders/MC_Path_tracing/MC_Properties.hlsli>
+#include <FilePaths.h>
 
 constexpr int res_w = 1280;
 constexpr int res_h = 720;
@@ -38,10 +39,6 @@ std::vector<float> create_test_texture_3d(int width, int height){
 	return result;
 }
 
-//Path to a directory where all compiled HLSL shaders (from "shaders" directory) are placed
-//constexpr auto COMPILED_SHADERS_DIR = L"C:\\Users\\User\\source\\repos\\LightEngine v2\\LightEngine-full\\bin\\x64\\Debug\\compiled shaders\\";
-constexpr auto COMPILED_SHADERS_DIR = L"B:\\source\\repos\\LightEngine v2\\LightEngine-full\\bin\\x64\\Debug\\compiled shaders\\";
-
 
 int main(int argc, const char **argv) {
 
@@ -56,7 +53,7 @@ int main(int argc, const char **argv) {
 
 	window.show_window();
 
-	std::vector<LightEngine::Geometry<LightEngine::Vertex3>> scene;
+	
 	
 	try {
 
@@ -112,7 +109,7 @@ int main(int argc, const char **argv) {
 		LightEngine::Texture2D pixel_color(core, "Pixel color", res_w, res_h, blank);
 		LightEngine::Texture2D shadow_map(core, "Ray traced shadow map", res_w, res_h, blank);
 		LightEngine::Texture3D general_3D_buffer(core, "3D Buffer", res_w, res_h, SAMPLES_COUNT, general_3d_buffer);
-		LightEngine::Texture2D noise(core, "B:\\CG Projects\\Tekstury\\noise.png");
+		LightEngine::Texture2D noise(core, NOISE_TX_PATH);
 
 		
 		
@@ -201,28 +198,57 @@ int main(int argc, const char **argv) {
 		//LightEngine::Geometry<LightEngine::Vertex3> test_plane(core, test_plane_vtx, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, "test_plane");
 		//LightEngine::Geometry<LightEngine::Vertex3> test_plane_1(core, test_plane_1_vtx, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, "test_plane");
 
-		
-		//static std::vector<LightEngine::Geometry<LightEngine::Vertex3>> scene_objs = LightEngine::Geometry<LightEngine::Vertex3>::load_from_obj(core, "C:\\Users\\User\\Desktop\\3D Objects\\scene.obj");
-		std::vector<LightEngine::Geometry<LightEngine::Vertex3>> scene_objs = LightEngine::Geometry<LightEngine::Vertex3>::load_from_obj(core, "B:\\CG Projects\\objects\\scene.obj");
-		//scene.push_back(test_plane);
-		//scene.push_back(test_plane_1);
-		scene.push_back(scene_objs[0]);
+		const float **colors = new const float *[4];
 
+		float white[3]{ 1.0, 1.0, 1.0 };
+		float red[3]{ 1.0, 0.0, 0.0 };
+		float green[3]{ 0.0, 1.0, 0.0 };
+		float blue[3]{ 0.0, 0.0, 1.0 };
+
+		colors[0] = white;
+		colors[1] = red;
+		colors[2] = green;
+		colors[3] = blue;
+		
+		
+		std::vector<LightEngine::Geometry<LightEngine::Vertex3>> scene = LightEngine::Geometry<LightEngine::Vertex3>::load_from_obj(core, SCENE_FILE_PATH, colors, 4);
+
+		int scene_vertex_count = 0;
+
+		for (auto& obj : scene) 
+			scene_vertex_count += obj.get_vertices_vector().size();
+		
+		std::vector<LightEngine::Vertex3> merged_vertices(scene_vertex_count);
+
+		auto destination_itr = merged_vertices.begin();
+
+		for (auto& obj : scene) {
+			std::vector<LightEngine::Vertex3> obj_vertices(obj.get_vertices_vector());
+
+			auto source_begin_itr = obj_vertices.begin();
+			auto source_end_itr = obj_vertices.end();
+
+			std::copy(source_begin_itr, source_end_itr, destination_itr);
+
+			destination_itr += obj_vertices.size();
+		}
+
+		int triangle_count = merged_vertices.size() / 3;
 
 		static std::vector<LightEngine::Vertex3> tris_v0s(0);
 		static std::vector<LightEngine::Vertex3> tris_v1s(0);
 		static std::vector<LightEngine::Vertex3> tris_v2s(0);
-		const std::vector<LightEngine::Vertex3> vertices = scene_objs[0].get_vertices_vector();
 
-		tris_v0s.reserve(vertices.size());
-		tris_v1s.reserve(vertices.size());
-		tris_v2s.reserve(vertices.size());
+		tris_v0s.reserve(triangle_count);
+		tris_v1s.reserve(triangle_count);
+		tris_v2s.reserve(triangle_count);
 
-		for (int i = 0; i < vertices.size(); i += 3) {
 
-			tris_v0s.push_back(vertices[i]);
-			tris_v1s.push_back(vertices[i + 1]);
-			tris_v2s.push_back(vertices[i + 2]);
+		for (int i = 0; i < merged_vertices.size(); i += 3) {
+
+			tris_v0s.push_back(merged_vertices[i]);
+			tris_v1s.push_back(merged_vertices[i + 1]);
+			tris_v2s.push_back(merged_vertices[i + 2]);
 
 		}
 
@@ -335,7 +361,7 @@ int main(int argc, const char **argv) {
 							if (ImGui::MenuItem("Import")) {
 								std::string path = AppWindow::open_file_dialog(model_file_filter, model_file_filter_size);
 								if (path != "") {
-									std::vector<LightEngine::Geometry<LightEngine::Vertex3>> object_set = LightEngine::Geometry<LightEngine::Vertex3>::load_from_obj(core, path);
+									std::vector<LightEngine::Geometry<LightEngine::Vertex3>> object_set = LightEngine::Geometry<LightEngine::Vertex3>::load_from_obj(core, path, nullptr, 0);
 									for (auto& object : object_set) {
 										scene.push_back(object);
 									}
@@ -670,16 +696,16 @@ int main(int argc, const char **argv) {
 				
 				core->clear_frame_buffer(color);				
 				
+				// Clear all textures that will be used as render targets
+				core->flush_render_targets();
+
+				// Bind pixel shader which will generate pixel data and store it in textures
+				pixel_data_generate.bind();
+
+				// Use rendering to texture mode
+				core->render_to_textures();
+
 				for (int i = 0; i < scene.size(); i++) {
-					
-					// Clear all textures that will be used as render targets
-					core->flush_render_targets();
-
-					// Bind pixel shader which will generate pixel data and store it in textures
-					pixel_data_generate.bind();
-
-					// Use rendering to texture mode
-					core->render_to_textures();
 
 					scene[i].bind_topology();
 					scene[i].bind_vertex_buffer();
@@ -687,51 +713,57 @@ int main(int argc, const char **argv) {
 					// Run first pass to generate data
 					scene[i].draw(0);
 
+				}
+
+				// Use rendering to frame buffer mode - releasing all resources to use in CS
+				core->render_to_frame_buffer();
+
+				sr_manager.bind_texture_buffer(pixel_world_position, LightEngine::ShaderType::ComputeShader, 3u);
+				sr_manager.bind_texture_buffer(pixel_normal, LightEngine::ShaderType::ComputeShader, 4u);
+				sr_manager.bind_texture_buffer(pixel_tangent, LightEngine::ShaderType::ComputeShader, 5u);
+				sr_manager.bind_texture_buffer(pixel_bitangent, LightEngine::ShaderType::ComputeShader, 6u);
+				sr_manager.bind_texture_buffer(pixel_color, LightEngine::ShaderType::ComputeShader, 8u);
+				sr_manager.bind_cs_unordered_access_buffer(general_3D_buffer, 0u);
+
+				sampling_cs.bind();
+				sampling_cs.run(res_w, res_h, SAMPLES_COUNT);
+
+				sr_manager.unbind_constant_buffer(LightEngine::ShaderType::PixelShader, 0u);
+				sr_manager.bind_constant_buffer(point_light_cbuff, LightEngine::ShaderType::ComputeShader, 0u);
+
+				lambert_cs.bind();
+				lambert_cs.run(res_w, res_h, 1u);
 
 
-					// Use rendering to frame buffer mode - releasing all resources to use in CS
-					core->render_to_frame_buffer();
-				
-					sr_manager.bind_texture_buffer(pixel_world_position, LightEngine::ShaderType::ComputeShader, 3u);
-					sr_manager.bind_texture_buffer(pixel_normal, LightEngine::ShaderType::ComputeShader, 4u);
-					sr_manager.bind_texture_buffer(pixel_tangent, LightEngine::ShaderType::ComputeShader, 5u);
-					sr_manager.bind_texture_buffer(pixel_bitangent, LightEngine::ShaderType::ComputeShader, 6u);
-					sr_manager.bind_cs_unordered_access_buffer(general_3D_buffer, 0u);
+				sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 3u);
+				sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 4u);
+				sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 5u);
+				sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 6u);
+				sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 8u);
+				sr_manager.unbind_cs_unordered_access_buffer(0u);
+				sr_manager.unbind_constant_buffer(LightEngine::ShaderType::ComputeShader, 0u);
 
-					sampling_cs.bind();
-					sampling_cs.run(res_w, res_h, SAMPLES_COUNT);
+				// Bind pixel shader for lighting/shading 
+				lambert_diffuse_ps.bind();
 
-					sr_manager.unbind_constant_buffer(LightEngine::ShaderType::PixelShader, 0u);
-					sr_manager.bind_constant_buffer(point_light_cbuff, LightEngine::ShaderType::ComputeShader, 0u);
+				sr_manager.bind_constant_buffer(point_light_cbuff, LightEngine::ShaderType::PixelShader, 0u);
+				sr_manager.bind_texture_buffer(general_3D_buffer, LightEngine::ShaderType::PixelShader, 1u);
 
-					lambert_cs.bind();
-					lambert_cs.run(res_w, res_h, 1u);
-
-
-					sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 3u);
-					sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 4u);
-					sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 5u);
-					sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 6u);
-					sr_manager.unbind_cs_unordered_access_buffer(0u);
-					sr_manager.unbind_constant_buffer(LightEngine::ShaderType::ComputeShader, 0u);
-
-					// Bind pixel shader for lighting/shading 
-					lambert_diffuse_ps.bind();
-
-					sr_manager.bind_constant_buffer(point_light_cbuff, LightEngine::ShaderType::PixelShader, 0u);
-					sr_manager.bind_texture_buffer(general_3D_buffer, LightEngine::ShaderType::PixelShader, 1u);
-
+				for (int i = 0; i < scene.size(); i++) {
+					
+					scene[i].bind_topology();
+					scene[i].bind_vertex_buffer();
 
 					// Run second (final) pass to render image in frame buffer
 					scene[i].draw(0);
+				}
+				sr_manager.unbind_texture_buffer(LightEngine::ShaderType::PixelShader, 1u);
 
-					sr_manager.unbind_texture_buffer(LightEngine::ShaderType::PixelShader, 1u);
 
-					
 
-				}			
 
-				
+
+
 				ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());				
 				
 				core->present_frame();			

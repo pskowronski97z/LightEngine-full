@@ -130,7 +130,7 @@ DirectX::XMFLOAT3 LightEngine::Geometry<T>::calculate_tris_tangent(Vertex3 v1, V
 }
 
 template<>
-std::vector<LightEngine::Geometry<LightEngine::Vertex3>> LightEngine::Geometry<LightEngine::Vertex3>::load_from_obj(std::shared_ptr<Core> core_ptr, std::string filename) {
+std::vector<LightEngine::Geometry<LightEngine::Vertex3>> LightEngine::Geometry<LightEngine::Vertex3>::load_from_obj(std::shared_ptr<Core> core_ptr, std::string filename, const float **colors_array, const uint32_t colors_array_size) {
 
 	tinyobj::ObjReader reader;
 	tinyobj::ObjReaderConfig reader_config;
@@ -171,6 +171,11 @@ std::vector<LightEngine::Geometry<LightEngine::Vertex3>> LightEngine::Geometry<L
 				tinyobj::real_t vy = attrib.vertices[3 * size_t(idx.vertex_index) + 1];
 				tinyobj::real_t vz = attrib.vertices[3 * size_t(idx.vertex_index) + 2];
 				temp_vertex.position_ = {vx, vy, vz};
+
+				if(s < colors_array_size) 
+					temp_vertex.color_ = { colors_array[s][0], colors_array[s][1], colors_array[s][2], 1.0 };	
+				else
+					temp_vertex.color_ = { 1.0, 1.0, 1.0, 1.0 };
 
 				// Check if `normal_index` is zero or positive. negative = no normal data
 				if (idx.normal_index >= 0) {
@@ -215,7 +220,7 @@ std::vector<LightEngine::Geometry<LightEngine::Vertex3>> LightEngine::Geometry<L
 					v3.tangent_ = {orthogonal_tangent.m128_f32[0], orthogonal_tangent.m128_f32[1], orthogonal_tangent.m128_f32[2]};
 					v3.bitangent_ = {bitangent.m128_f32[0], bitangent.m128_f32[1], bitangent.m128_f32[2]};
 
-				}
+					}
 			}
 			index_offset += fv;
 		}
