@@ -90,8 +90,8 @@ int main(int argc, const char **argv) {
 		LightEngine::PixelShader pixel_data_generate(core, shader_directory + L"GeneratePixelDataPS.cso");
 		LightEngine::PixelShader lambert_diffuse_ps(core, shader_directory + L"LambertDiffusePS.cso");
 		LightEngine::ComputeShader cs_(core, shader_directory + L"RT_Shadows_CS.cso");
-		LightEngine::ComputeShader sampling_cs(core, shader_directory + L"GeometrySamplingCS.cso");
-		LightEngine::ComputeShader lambert_cs(core, shader_directory + L"LambertDiffuseCS.cso");
+		//LightEngine::ComputeShader sampling_cs(core, shader_directory + L"GeometrySamplingCS.cso");
+		LightEngine::ComputeShader lambert_cs(core, shader_directory + L"LambertDiffuseCS_2.cso");
 
 		static float blank[res_w * res_h * 4 ];
 		ZeroMemory(blank, res_w * res_h * 4);
@@ -122,7 +122,7 @@ int main(int argc, const char **argv) {
 
 		LightEngine::ShaderResourceManager sr_manager(core);
 
-		sr_manager.bind_texture_buffer(noise, LightEngine::ShaderType::ComputeShader, 7u);
+		sr_manager.bind_texture_buffer(noise, LightEngine::ShaderType::ComputeShader, 6u);
 
 		//core->add_texture_to_render(world_position_data, 0u);
 		//core->add_texture_to_render(normal_data, 1u);
@@ -718,7 +718,7 @@ int main(int argc, const char **argv) {
 				// Use rendering to frame buffer mode - releasing all resources to use in CS
 				core->render_to_frame_buffer();
 
-				sr_manager.bind_texture_buffer(pixel_world_position, LightEngine::ShaderType::ComputeShader, 3u);
+				/*sr_manager.bind_texture_buffer(pixel_world_position, LightEngine::ShaderType::ComputeShader, 3u);
 				sr_manager.bind_texture_buffer(pixel_normal, LightEngine::ShaderType::ComputeShader, 4u);
 				sr_manager.bind_texture_buffer(pixel_tangent, LightEngine::ShaderType::ComputeShader, 5u);
 				sr_manager.bind_texture_buffer(pixel_bitangent, LightEngine::ShaderType::ComputeShader, 6u);
@@ -741,7 +741,22 @@ int main(int argc, const char **argv) {
 				sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 6u);
 				sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 8u);
 				sr_manager.unbind_cs_unordered_access_buffer(0u);
+				sr_manager.unbind_constant_buffer(LightEngine::ShaderType::ComputeShader, 0u);*/
+
+				sr_manager.bind_texture_buffer(pixel_world_position, LightEngine::ShaderType::ComputeShader, 3u);
+				sr_manager.bind_texture_buffer(pixel_normal, LightEngine::ShaderType::ComputeShader, 4u);
+				sr_manager.bind_texture_buffer(pixel_color, LightEngine::ShaderType::ComputeShader, 5u);
+				sr_manager.bind_cs_unordered_access_buffer(general_3D_buffer, 0u);
+				sr_manager.bind_constant_buffer(point_light_cbuff, LightEngine::ShaderType::ComputeShader, 0u);
+
+				lambert_cs.bind();
+				lambert_cs.run(res_w, res_h, 1u);
+
 				sr_manager.unbind_constant_buffer(LightEngine::ShaderType::ComputeShader, 0u);
+				sr_manager.unbind_cs_unordered_access_buffer(0u);
+				sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 5u);
+				sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 4u);
+				sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 3u);
 
 				// Bind pixel shader for lighting/shading 
 				lambert_diffuse_ps.bind();
@@ -758,11 +773,7 @@ int main(int argc, const char **argv) {
 					scene[i].draw(0);
 				}
 				sr_manager.unbind_texture_buffer(LightEngine::ShaderType::PixelShader, 1u);
-
-
-
-
-
+				sr_manager.unbind_constant_buffer(LightEngine::ShaderType::PixelShader, 0u);
 
 				ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());				
 				

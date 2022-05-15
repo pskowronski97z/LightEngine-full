@@ -9,7 +9,7 @@
 LightEngine::Core::Core(HWND window_handle_, int viewport_width, int viewport_height) {
 
 	msaa_samples_count_ = 4u;
-	static const D3D_FEATURE_LEVEL feature_level = D3D_FEATURE_LEVEL_11_1;
+	static const D3D_FEATURE_LEVEL feature_level = D3D_FEATURE_LEVEL_11_0;
 	static DXGI_SWAP_CHAIN_DESC swap_chain_desc = { 0 };
 
 	swap_chain_desc.BufferDesc.Height = viewport_height;
