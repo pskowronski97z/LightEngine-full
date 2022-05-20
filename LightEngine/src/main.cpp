@@ -205,10 +205,10 @@ int main(int argc, const char **argv) {
 		float green[3]{ 0.0, 1.0, 0.0 };
 		float blue[3]{ 0.0, 0.0, 1.0 };
 
-		colors[0] = white;
+		colors[0] = blue;
 		colors[1] = red;
 		colors[2] = green;
-		colors[3] = blue;
+		colors[3] = white;
 		
 		
 		std::vector<LightEngine::Geometry<LightEngine::Vertex3>> scene = LightEngine::Geometry<LightEngine::Vertex3>::load_from_obj(core, SCENE_FILE_PATH, colors, 4);
@@ -750,7 +750,7 @@ int main(int argc, const char **argv) {
 				sr_manager.bind_constant_buffer(point_light_cbuff, LightEngine::ShaderType::ComputeShader, 0u);
 
 				lambert_cs.bind();
-				lambert_cs.run(res_w, res_h, 1u);
+				lambert_cs.run(res_w, res_h, SAMPLES_COUNT);
 
 				sr_manager.unbind_constant_buffer(LightEngine::ShaderType::ComputeShader, 0u);
 				sr_manager.unbind_cs_unordered_access_buffer(0u);
