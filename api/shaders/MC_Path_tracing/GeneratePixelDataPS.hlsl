@@ -17,7 +17,7 @@ struct PixelShaderOutput {
     float4 color_ : SV_Target5;
 };
 
-PixelShaderOutput main(PixelShaderInput input_pixel) {
+PixelShaderOutput main(PixelShaderInput input_pixel, uint primitive_id : SV_PrimitiveID) {
     
     PixelShaderOutput output;
     
@@ -31,6 +31,8 @@ PixelShaderOutput main(PixelShaderInput input_pixel) {
     output.bitangent_ = float4(input_pixel.bitangent_, 1.0);
     output.uvw_ = float4(input_pixel.uvw_, 1.0);
     output.color_ = input_pixel.color_;
+    
+    output.bitangent_.w = float(primitive_id);
     
     return output;
 }

@@ -50,7 +50,7 @@ struct PS_INPUT {
     float3 bitangent : VT3_BITANGENT;
     float3 world_position : VT3_POSITION;
     float3 gouraud_shading : VT3_COLOR1;
-    float4 light_space_position : VT3_COLOR2;
+    uint instance_id : SV_InstanceID;
 };
 
 float get_attenuation(float distance) {

@@ -1,4 +1,4 @@
-#define RANDOM_TRIANGLES_COUNT 8
+#define RANDOM_TRIANGLES_COUNT 2
 
 // This shader calculates Lambert diffuse from geometry and intersection data
 // Dispatch(Frame width, Frame Height, 1)
@@ -47,7 +47,8 @@ groupshared float3 triangle_contribution[RANDOM_TRIANGLES_COUNT];
 void main(uint3 groupID : SV_GroupID, uint3 groupThreadID : SV_GroupThreadID) {
     
     //uint objects_sizes[5] = { 0, 12, 22, 76, 156};
-    uint objects_sizes[5] = { 0, 51, 1019, 1325, 1837 };
+    //uint objects_sizes[5] = { 0, 51, 1019, 1325, 1837 };
+    uint objects_sizes[5] = { 0, 512, 732, 952, 1172};
     
     uint2 triangle_index;
     float3 v0_data;

@@ -566,7 +566,13 @@ uint16_t LightEngine::Texture2D::get_width() const { return width_; }
 uint16_t LightEngine::Texture2D::get_height() const { return height_; }
 
 
-LightEngine::Texture3D::Texture3D(const std::shared_ptr<Core> &core_ptr, const std::string& name, const uint16_t width, const uint16_t height,  const uint16_t depth, const float* data) : 
+LightEngine::Texture3D::Texture3D(
+	const std::shared_ptr<Core> &core_ptr, 
+	const std::string& name, 
+	const uint16_t width,
+	const uint16_t height, 
+	const uint16_t depth, 
+	const float* data) : 
 	width_(width), height_(height), depth_(depth) {
 
 	core_ptr_ = core_ptr;
@@ -613,6 +619,64 @@ LightEngine::Texture3D::Texture3D(const std::shared_ptr<Core> &core_ptr, const s
 	uav_desc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
 	uav_desc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE3D;
 	
+	call_result_ = core_ptr_->get_device_ptr()->CreateUnorderedAccessView(ptr_.Get(), &uav_desc, uav_ptr_.GetAddressOf());
+	if (FAILED(call_result_))
+		throw LECoreException("<D3D11 ERROR> <UAV creation failed>", "LEShader.cpp", __LINE__ - 2, call_result_);
+}
+
+LightEngine::Texture3D::Texture3D(
+	const std::shared_ptr<Core>& core_ptr, 
+	const std::string& name, 
+	const uint16_t width,
+	const uint16_t height, 
+	const uint16_t depth, 
+	const int32_t* data) :
+	width_(width), height_(height), depth_(depth) {
+
+	core_ptr_ = core_ptr;
+	shader_resource_name_ = name;
+
+	descriptor_ = { 0 };
+
+	descriptor_.Width = width_;
+	descriptor_.Height = height_;
+	descriptor_.Depth = depth_;
+	descriptor_.MipLevels = 0u;
+	descriptor_.Format = DXGI_FORMAT_R32_SINT;
+	descriptor_.Usage = D3D11_USAGE_DEFAULT;
+	descriptor_.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_RENDER_TARGET;
+	//descriptor_.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
+	descriptor_.CPUAccessFlags = 0;
+
+	call_result_ = core_ptr_->get_device_ptr()->CreateTexture3D(&descriptor_, nullptr, &ptr_);
+	if (FAILED(call_result_))
+		throw LECoreException("<D3D11 ERROR> <Texture resource creation failed>", "LEShader.cpp", __LINE__ - 2, call_result_);
+
+	core_ptr->get_context_ptr()->UpdateSubresource(ptr_.Get(),
+		0u,
+		nullptr,
+		data,
+		static_cast<uint32_t>(width_) * sizeof(int32_t),
+		static_cast<uint32_t>(width_) * static_cast<uint32_t>(height_) * sizeof(int32_t));
+
+	static const D3D11_SHADER_RESOURCE_VIEW_DESC srvd = {
+		descriptor_.Format,
+		D3D11_SRV_DIMENSION_TEXTURE3D,
+		{0,-1}
+	};
+
+	call_result_ = core_ptr->get_device_ptr()->CreateShaderResourceView(ptr_.Get(), &srvd, &srv_ptr_);
+	if (FAILED(call_result_))
+		throw LECoreException("<D3D11 ERROR> <Shader resource view creation failed>", "LEShader.cpp", __LINE__ - 2, call_result_);
+
+	static D3D11_UNORDERED_ACCESS_VIEW_DESC uav_desc;
+
+	uav_desc.Texture3D.FirstWSlice = 0u;
+	uav_desc.Texture3D.MipSlice = 0u;
+	uav_desc.Texture3D.WSize = depth_;
+	uav_desc.Format = DXGI_FORMAT_R32_SINT;
+	uav_desc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE3D;
+
 	call_result_ = core_ptr_->get_device_ptr()->CreateUnorderedAccessView(ptr_.Get(), &uav_desc, uav_ptr_.GetAddressOf());
 	if (FAILED(call_result_))
 		throw LECoreException("<D3D11 ERROR> <UAV creation failed>", "LEShader.cpp", __LINE__ - 2, call_result_);

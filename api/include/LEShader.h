@@ -175,6 +175,8 @@ namespace LightEngine {
 		uint16_t depth_;
 	public:
 		Texture3D(const std::shared_ptr<Core> &core_ptr, const std::string &name, const uint16_t width, const uint16_t height, const uint16_t depth, const float *data);
+		Texture3D(const std::shared_ptr<Core>& core_ptr, const std::string& name, const uint16_t width, const uint16_t height, const uint16_t depth, const int32_t* data);
+
 		uint16_t get_width() const;
 		uint16_t get_height() const;
 		uint16_t get_depth() const;

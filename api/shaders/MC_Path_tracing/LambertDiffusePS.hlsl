@@ -22,6 +22,7 @@ struct LightSource {
 LightSource light_source : register(b0);
 Texture2D<float4> shadow_map : register(t0);
 Texture3D<float4> global_illumination : register(t1);
+Texture3D<int> lookup : register(t2);
 
 float4 main(PixelShaderInput input_pixel) : SV_TARGET {
     

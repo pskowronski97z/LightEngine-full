@@ -48,7 +48,7 @@ int main(int argc, const char **argv) {
 	//window.set_style(AppWindow::Style::SIZEABLE);
 	window.set_icon("LE.ico");
 
-	float color[4]{0.0,0.0,0.0};
+	float color[4]{0.4,0.4,0.43};
 	MSG msg = { 0 };
 
 	window.show_window();
@@ -154,65 +154,24 @@ int main(int argc, const char **argv) {
 		LightEngine::Sampler sampler_trilinear(core, LightEngine::Sampler::Filtering::TRILINEAR);
 		LightEngine::Sampler sampler_anisotropic(core, LightEngine::Sampler::Filtering::ANISOTROPIC);
 
-		/*
-		LightEngineUI::Backend::BrowserModel<LightEngine::StaticTexture> texture_browser_model;
-		LightEngineUI::Backend::BrowserModel<LightEngine::Materials::BasicMaterial> bm_browser_model;
-		std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::Materials::BasicMaterial>> bm_browser_model_ptr = std::make_shared<LightEngineUI::Backend::BrowserModel<LightEngine::Materials::BasicMaterial>>(bm_browser_model);
-		std::shared_ptr<LightEngineUI::Backend::BrowserModel<LightEngine::StaticTexture>> tbm_ptr = std::make_shared<LightEngineUI::Backend::BrowserModel<LightEngine::StaticTexture>>(texture_browser_model);
-		LightEngineUI::Frontend::TextureBrowser texture_browser(tbm_ptr,core);
-		LightEngineUI::Frontend::MaterialEditor material_editor(tbm_ptr);
-		LightEngineUI::Frontend::BasicMaterialsBrowser bm_browser(bm_browser_model_ptr,core);
-		std::vector<LightEngine::Vertex3> border_vertices{
-			{{-0.99,0.99,0.0},{0.4,0.4,0.4,1.0}},
-			{{0.99,0.99,0.0},{0.4,0.4,0.4,1.0}},
-			{{0.99,-0.99,0.0},{0.4,0.4,0.4,1.0}},
-			{{-0.99,-0.99,0.0},{0.4,0.4,0.4,1.0}},
-			{{-0.99,0.99,0.0},{0.4,0.4,0.4,1.0}}};
-		std::vector<LightEngine::Vertex3> shadow_map_display_vertices{
-			{{-0.99,-0.99,0.0},{0.4,0.4,0.4,-1.0},{0,1,0}},
-			{{-0.99,0.0,0.0},{0.4,0.4,0.4,-1.0},{0,0,0}},
-			{{-0.4,-0.99,0.0},{0.4,0.4,0.4,-1.0},{1,1,0}},			
-			{{-0.4,0.0,0.0},{0.4,0.4,0.4,-1.0},{1,0,0}}};*/
-
-		std::vector<LightEngine::Vertex3> test_plane_vtx{
-			{{5.0, 10.0, -5.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}},
-			{{-5.0, 10.0, 5.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}},
-			{{5.0, 10.0, 5.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}},
-			{{-5.0, 10.0, -5.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}},
-			{{-5.0, 10.0, 5.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}},
-			{{5.0, 10.0, -5.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}}
-		};
-
-		std::vector<LightEngine::Vertex3> test_plane_1_vtx{
-			{{35.0, 0.0, -35.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}},
-			{{-35.0, 0.0, 35.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}},
-			{{35.0, 0.0, 35.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}},
-			{{-35.0, 0.0, -35.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}},
-			{{-35.0, 0.0, 35.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}},
-			{{35.0, 0.0, -35.0}, {1.0, 1.0, 1.0, 1.0}, {0.0, 0.0, 0.0}, {0.0, 1.0, 0.0}}
-		};
-
-		//LightEngine::Texture2D test_plane_tex = LightEngine::Texture2D::store_geometry(core, test_plane_vtx);	
-		//LightEngine::Geometry<LightEngine::Vertex3> viewport_border(core, border_vertices, D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP, "border");
-		//LightEngine::Geometry<LightEngine::Vertex3> shadow_map_display(core, shadow_map_display_vertices, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP,"shadow_map_display");	
-		//LightEngine::Geometry<LightEngine::Vertex3> test_plane(core, test_plane_vtx, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, "test_plane");
-		//LightEngine::Geometry<LightEngine::Vertex3> test_plane_1(core, test_plane_1_vtx, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, "test_plane");
-
-		const float **colors = new const float *[4];
+		const float **colors = new const float *[5];
 
 		float white[3]{ 1.0, 1.0, 1.0 };
-		float red[3]{ 1.0, 0.0, 0.0 };
-		float green[3]{ 0.0, 1.0, 0.0 };
-		float blue[3]{ 0.0, 0.0, 1.0 };
+		float red[3]{ 1.0, 0.1, 0.1 };
+		float green[3]{ 0.1, 1.0, 0.1 };
+		float blue[3]{ 0.1, 0.1, 1.0 };
+		float yellow[3]{ 0.1, 1.0, 1.0 };
 
 		colors[0] = blue;
-		colors[1] = red;
-		colors[2] = green;
-		colors[3] = white;
+		colors[1] = white;
+		colors[2] = red;
+		colors[3] = green;
+		colors[4] = yellow;
 		
+		std::vector<LightEngine::Geometry<LightEngine::Vertex3>> scene = LightEngine::Geometry<LightEngine::Vertex3>::load_from_obj(core, SCENE_FILE_PATH, colors, 5);
 		
-		std::vector<LightEngine::Geometry<LightEngine::Vertex3>> scene = LightEngine::Geometry<LightEngine::Vertex3>::load_from_obj(core, SCENE_FILE_PATH, colors, 4);
-
+	
+		// Objects merging
 		int scene_vertex_count = 0;
 
 		for (auto& obj : scene) 
@@ -233,7 +192,37 @@ int main(int argc, const char **argv) {
 			destination_itr += obj_vertices.size();
 		}
 
-		int triangle_count = merged_vertices.size() / 3;
+		int32_t *lut = LightEngine::GeometryTools::generate_lookup_matrix(5, 968, 10, 5.0, scene, merged_vertices);
+
+		LightEngine::Texture3D lut_texture(core, "LUT", 968, 5, 10, lut);
+		sr_manager.bind_texture_buffer(lut_texture, LightEngine::ShaderType::PixelShader, 2u);
+
+		/*std::vector<std::vector<int32_t>> look_up_table = LightEngine::GeometryTools::get_k_visible_neighbours(
+			10,
+			5.0,
+			scene.at(1).get_vertices_vector(),
+			merged_vertices
+		);
+
+		std::vector<LightEngine::Vertex3> visible_patch;
+
+		for (auto& row : look_up_table) {
+			for (auto& index : row) {
+				if (index > 0) {
+					visible_patch.push_back(merged_vertices.at(3 * index));
+					visible_patch.push_back(merged_vertices.at(3 * index + 1));
+					visible_patch.push_back(merged_vertices.at(3 * index + 2));
+				}
+			}
+		}
+
+		LightEngine::Geometry<LightEngine::Vertex3> patch(core, visible_patch, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, "");
+
+		scene.clear();
+		scene.push_back(patch);*/
+
+
+		/*int triangle_count = merged_vertices.size() / 3;
 
 		static std::vector<LightEngine::Vertex3> tris_v0s(0);
 		static std::vector<LightEngine::Vertex3> tris_v1s(0);
@@ -258,8 +247,8 @@ int main(int argc, const char **argv) {
 
 		sr_manager.bind_texture_buffer(v0s_tex, LightEngine::ShaderType::ComputeShader, 0u);
 		sr_manager.bind_texture_buffer(v1s_tex, LightEngine::ShaderType::ComputeShader, 1u);
-		sr_manager.bind_texture_buffer(v2s_tex, LightEngine::ShaderType::ComputeShader, 2u);
-
+		sr_manager.bind_texture_buffer(v2s_tex, LightEngine::ShaderType::ComputeShader, 2u);*/
+		
 		
 
 		/*direct_light.set_position(direct_light_position);
@@ -696,14 +685,7 @@ int main(int argc, const char **argv) {
 				
 				core->clear_frame_buffer(color);				
 				
-				// Clear all textures that will be used as render targets
-				core->flush_render_targets();
-
-				// Bind pixel shader which will generate pixel data and store it in textures
-				pixel_data_generate.bind();
-
-				// Use rendering to texture mode
-				core->render_to_textures();
+				lambert_diffuse_ps.bind();
 
 				for (int i = 0; i < scene.size(); i++) {
 
@@ -714,66 +696,6 @@ int main(int argc, const char **argv) {
 					scene[i].draw(0);
 
 				}
-
-				// Use rendering to frame buffer mode - releasing all resources to use in CS
-				core->render_to_frame_buffer();
-
-				/*sr_manager.bind_texture_buffer(pixel_world_position, LightEngine::ShaderType::ComputeShader, 3u);
-				sr_manager.bind_texture_buffer(pixel_normal, LightEngine::ShaderType::ComputeShader, 4u);
-				sr_manager.bind_texture_buffer(pixel_tangent, LightEngine::ShaderType::ComputeShader, 5u);
-				sr_manager.bind_texture_buffer(pixel_bitangent, LightEngine::ShaderType::ComputeShader, 6u);
-				sr_manager.bind_texture_buffer(pixel_color, LightEngine::ShaderType::ComputeShader, 8u);
-				sr_manager.bind_cs_unordered_access_buffer(general_3D_buffer, 0u);
-
-				sampling_cs.bind();
-				sampling_cs.run(res_w, res_h, SAMPLES_COUNT);
-
-				sr_manager.unbind_constant_buffer(LightEngine::ShaderType::PixelShader, 0u);
-				sr_manager.bind_constant_buffer(point_light_cbuff, LightEngine::ShaderType::ComputeShader, 0u);
-
-				lambert_cs.bind();
-				lambert_cs.run(res_w, res_h, 1u);
-
-
-				sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 3u);
-				sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 4u);
-				sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 5u);
-				sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 6u);
-				sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 8u);
-				sr_manager.unbind_cs_unordered_access_buffer(0u);
-				sr_manager.unbind_constant_buffer(LightEngine::ShaderType::ComputeShader, 0u);*/
-
-				sr_manager.bind_texture_buffer(pixel_world_position, LightEngine::ShaderType::ComputeShader, 3u);
-				sr_manager.bind_texture_buffer(pixel_normal, LightEngine::ShaderType::ComputeShader, 4u);
-				sr_manager.bind_texture_buffer(pixel_color, LightEngine::ShaderType::ComputeShader, 5u);
-				sr_manager.bind_cs_unordered_access_buffer(general_3D_buffer, 0u);
-				sr_manager.bind_constant_buffer(point_light_cbuff, LightEngine::ShaderType::ComputeShader, 0u);
-
-				lambert_cs.bind();
-				lambert_cs.run(res_w, res_h, SAMPLES_COUNT);
-
-				sr_manager.unbind_constant_buffer(LightEngine::ShaderType::ComputeShader, 0u);
-				sr_manager.unbind_cs_unordered_access_buffer(0u);
-				sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 5u);
-				sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 4u);
-				sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 3u);
-
-				// Bind pixel shader for lighting/shading 
-				lambert_diffuse_ps.bind();
-
-				sr_manager.bind_constant_buffer(point_light_cbuff, LightEngine::ShaderType::PixelShader, 0u);
-				sr_manager.bind_texture_buffer(general_3D_buffer, LightEngine::ShaderType::PixelShader, 1u);
-
-				for (int i = 0; i < scene.size(); i++) {
-					
-					scene[i].bind_topology();
-					scene[i].bind_vertex_buffer();
-
-					// Run second (final) pass to render image in frame buffer
-					scene[i].draw(0);
-				}
-				sr_manager.unbind_texture_buffer(LightEngine::ShaderType::PixelShader, 1u);
-				sr_manager.unbind_constant_buffer(LightEngine::ShaderType::PixelShader, 0u);
 
 				ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());				
 				
