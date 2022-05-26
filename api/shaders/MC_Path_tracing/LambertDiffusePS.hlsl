@@ -19,13 +19,14 @@ struct LightSource {
     float4 color_;
 };
 
-LightSource light_source : register(b0);
-Texture2D<float4> shadow_map : register(t0);
+cbuffer LIGHT_SOURCE : register(b0) {
+    LightSource light_source;
+};
+Texture2D<float4> random_floats: register(t0);
 Texture3D<float4> global_illumination : register(t1);
-Texture3D<int> lookup : register(t2);
 
 float4 main(PixelShaderInput input_pixel) : SV_TARGET {
-    
+   
     input_pixel.normal_ = normalize(input_pixel.normal_);
     float3 light_ray = light_source.position_.xyz - input_pixel.world_position_.xyz;
     float distance = length(light_ray);
@@ -38,11 +39,23 @@ float4 main(PixelShaderInput input_pixel) : SV_TARGET {
     pixel_lighting *= intensity;
     
     float3 indirect_lighting = float3(0.0, 0.0, 0.0);
+    float4 random_vector = random_floats[input_pixel.position_.xy];
     
-    for (int i = 0; i < SAMPLES_COUNT; i++)
-        indirect_lighting += global_illumination[uint3(input_pixel.position_.xy, i)].xyz;
-
-    indirect_lighting /= SAMPLES_COUNT;
+    //for (int i = 0; i < 10; i++) 
+     //   indirect_lighting += global_illumination[uint3(input_pixel.position_.xy, i)].xyz;  
+    
+    //indirect_lighting /= 10;
+    
+    uint random_uint = lerp(0.0, 4.0, random_vector.x);
+    indirect_lighting += global_illumination[uint3(input_pixel.position_.xy, random_uint)].xyz;
+    
+    random_uint = lerp(0.0, 4.0, random_vector.y);
+    indirect_lighting += global_illumination[uint3(input_pixel.position_.xy, random_uint)].xyz;
+    
+    random_uint = lerp(0.0, 4.0, random_vector.z);
+    indirect_lighting += global_illumination[uint3(input_pixel.position_.xy, random_uint)].xyz;
+    
+    indirect_lighting /= 3;
     
     pixel_lighting = pixel_lighting + indirect_lighting;
     

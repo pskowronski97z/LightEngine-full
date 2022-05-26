@@ -129,6 +129,7 @@ namespace LightEngine {
 	};
 
 	template class _declspec(dllexport) CBuffer<Light>;
+	template class _declspec(dllexport) CBuffer<uint32_t>;
 
 	class _declspec(dllexport) AbstractTexture : public ShaderResource {
 		friend class ShaderResourceManager;
@@ -197,6 +198,7 @@ namespace LightEngine {
 	};
 	
 	template _declspec(dllexport) bool ShaderResourceManager::bind_constant_buffer(CBuffer<Light> &cbuffer, const ShaderType shader_type, const uint8_t slot) const;
-	
+	template _declspec(dllexport) bool ShaderResourceManager::bind_constant_buffer(CBuffer<uint32_t>& cbuffer, const ShaderType shader_type, const uint8_t slot) const;
+
 
 }

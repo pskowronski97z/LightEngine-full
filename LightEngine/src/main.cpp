@@ -92,6 +92,7 @@ int main(int argc, const char **argv) {
 		LightEngine::ComputeShader cs_(core, shader_directory + L"RT_Shadows_CS.cso");
 		//LightEngine::ComputeShader sampling_cs(core, shader_directory + L"GeometrySamplingCS.cso");
 		LightEngine::ComputeShader lambert_cs(core, shader_directory + L"LambertDiffuseCS_2.cso");
+		LightEngine::ComputeShader k_best_cs(core, shader_directory + L"KBestN_Diffuse_CS.cso");
 
 		static float blank[res_w * res_h * 4 ];
 		ZeroMemory(blank, res_w * res_h * 4);
@@ -122,8 +123,8 @@ int main(int argc, const char **argv) {
 
 		LightEngine::ShaderResourceManager sr_manager(core);
 
-		sr_manager.bind_texture_buffer(noise, LightEngine::ShaderType::ComputeShader, 6u);
-
+		//sr_manager.bind_texture_buffer(noise, LightEngine::ShaderType::ComputeShader, 6u);
+		sr_manager.bind_texture_buffer(noise, LightEngine::ShaderType::PixelShader, 0u);
 		//core->add_texture_to_render(world_position_data, 0u);
 		//core->add_texture_to_render(normal_data, 1u);
 		//sr_manager.bind_texture_buffer(texture_a, LightEngine::ShaderType::ComputeShader, 2u);
@@ -162,8 +163,8 @@ int main(int argc, const char **argv) {
 		float blue[3]{ 0.1, 0.1, 1.0 };
 		float yellow[3]{ 0.1, 1.0, 1.0 };
 
-		colors[0] = blue;
-		colors[1] = white;
+		colors[0] = white;
+		colors[1] = blue;
 		colors[2] = red;
 		colors[3] = green;
 		colors[4] = yellow;
@@ -192,10 +193,19 @@ int main(int argc, const char **argv) {
 			destination_itr += obj_vertices.size();
 		}
 
-		int32_t *lut = LightEngine::GeometryTools::generate_lookup_matrix(5, 968, 10, 5.0, scene, merged_vertices);
+		//std::vector<LightEngine::Geometry<LightEngine::Vertex3>> tmp;
+		//tmp.push_back(scene[1]);
 
-		LightEngine::Texture3D lut_texture(core, "LUT", 968, 5, 10, lut);
-		sr_manager.bind_texture_buffer(lut_texture, LightEngine::ShaderType::PixelShader, 2u);
+		int32_t *lut = LightEngine::GeometryTools::generate_lookup_matrix(3, 968, 4, 2.0, scene, merged_vertices);
+
+		LightEngine::Texture3D lut_texture(core, "LUT", 968, 3, 4, lut);
+
+		sr_manager.bind_texture_buffer(lut_texture, LightEngine::ShaderType::ComputeShader, 8u);
+
+		static float neighbour_contribution[res_w * res_h * 4 * 4];
+		ZeroMemory(general_3d_buffer, res_w * res_h * 4 * 4);
+
+		LightEngine::Texture3D gi_map(core, "GI map", res_w, res_h, 4, neighbour_contribution);
 
 		/*std::vector<std::vector<int32_t>> look_up_table = LightEngine::GeometryTools::get_k_visible_neighbours(
 			10,
@@ -222,7 +232,7 @@ int main(int argc, const char **argv) {
 		scene.push_back(patch);*/
 
 
-		/*int triangle_count = merged_vertices.size() / 3;
+		int triangle_count = merged_vertices.size() / 3;
 
 		static std::vector<LightEngine::Vertex3> tris_v0s(0);
 		static std::vector<LightEngine::Vertex3> tris_v1s(0);
@@ -245,9 +255,9 @@ int main(int argc, const char **argv) {
 		LightEngine::Texture2D v1s_tex = LightEngine::Texture2D::store_geometry(core, tris_v1s);
 		LightEngine::Texture2D v2s_tex = LightEngine::Texture2D::store_geometry(core, tris_v2s);
 
-		sr_manager.bind_texture_buffer(v0s_tex, LightEngine::ShaderType::ComputeShader, 0u);
-		sr_manager.bind_texture_buffer(v1s_tex, LightEngine::ShaderType::ComputeShader, 1u);
-		sr_manager.bind_texture_buffer(v2s_tex, LightEngine::ShaderType::ComputeShader, 2u);*/
+		sr_manager.bind_texture_buffer(v0s_tex, LightEngine::ShaderType::ComputeShader, 5u);
+		sr_manager.bind_texture_buffer(v1s_tex, LightEngine::ShaderType::ComputeShader, 6u);
+		sr_manager.bind_texture_buffer(v2s_tex, LightEngine::ShaderType::ComputeShader, 7u);
 		
 		
 
@@ -299,8 +309,13 @@ int main(int argc, const char **argv) {
 		p0.color_.z = point_light_color[2];
 		p0.color_.w = point_light_intensity;
 
+		uint32_t cpu_data[4]{ 0,0,0,0 };
+
 		LightEngine::CBuffer<LightEngine::Light> point_light_cbuff(core, "Point light 0", &p0, sizeof(p0));
-		sr_manager.bind_constant_buffer(point_light_cbuff, LightEngine::ShaderType::PixelShader, 0u);
+		LightEngine::CBuffer<uint32_t> cpu_data_cbuff(core, "Cpu data", cpu_data, 16u);
+
+		
+		sr_manager.bind_constant_buffer(cpu_data_cbuff, LightEngine::ShaderType::PixelShader, 1u);
 
 		int vp_width = 0;
 		int vp_height = 0;
@@ -684,10 +699,23 @@ int main(int argc, const char **argv) {
 			
 				
 				core->clear_frame_buffer(color);				
-				
-				lambert_diffuse_ps.bind();
+				core->flush_render_targets();
+				core->render_to_textures();
 
-				for (int i = 0; i < scene.size(); i++) {
+
+				pixel_data_generate.bind();
+				
+				//tmp[0].bind_topology();
+				//tmp[0].bind_vertex_buffer();
+
+				// Run first pass to generate data
+				//tmp[0].draw(0);
+
+				
+				for (uint32_t i = 0; i < scene.size(); i++) {
+
+					cpu_data[0] = i;
+					cpu_data_cbuff.update(cpu_data, 16u);
 
 					scene[i].bind_topology();
 					scene[i].bind_vertex_buffer();
@@ -696,6 +724,55 @@ int main(int argc, const char **argv) {
 					scene[i].draw(0);
 
 				}
+
+				core->render_to_frame_buffer();
+
+				// Bind light source to cs
+				sr_manager.bind_constant_buffer(point_light_cbuff, LightEngine::ShaderType::ComputeShader, 0u);
+				// Bind g-buffer to cs
+				sr_manager.bind_texture_buffer(pixel_world_position, LightEngine::ShaderType::ComputeShader, 0u);
+				sr_manager.bind_texture_buffer(pixel_normal, LightEngine::ShaderType::ComputeShader, 1u);
+				sr_manager.bind_texture_buffer(pixel_tangent, LightEngine::ShaderType::ComputeShader, 2u);
+				sr_manager.bind_texture_buffer(pixel_bitangent, LightEngine::ShaderType::ComputeShader, 3u);
+				sr_manager.bind_texture_buffer(pixel_color, LightEngine::ShaderType::ComputeShader, 4u);
+				
+				// Bind GI map uav to cs
+				sr_manager.bind_cs_unordered_access_buffer(gi_map, 0u);
+				
+				// Run cs with (res_w, res_h, 10)
+				k_best_cs.bind();
+				k_best_cs.run(res_w, res_h, 1);
+		
+				// Unbind light source from CS
+				sr_manager.unbind_constant_buffer(LightEngine::ShaderType::ComputeShader, 0u);
+				// Unbind g-buffer
+				sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 0u);
+				sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 1u);
+				sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 2u);
+				sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 3u);
+				sr_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 4u);
+
+				// Unbind GI map from uav
+				sr_manager.unbind_cs_unordered_access_buffer(0u);
+				// Bind light source to PS
+				sr_manager.bind_constant_buffer(point_light_cbuff, LightEngine::ShaderType::PixelShader, 0u);
+				//Bind GI map to ps
+				sr_manager.bind_texture_buffer(gi_map, LightEngine::ShaderType::PixelShader, 1u);
+				lambert_diffuse_ps.bind();
+
+				for (uint32_t i = 0; i < scene.size(); i++) {
+
+					scene[i].bind_topology();
+					scene[i].bind_vertex_buffer();
+
+					scene[i].draw(0);
+
+				}
+
+				// Unbind GI Map from PS
+				sr_manager.unbind_texture_buffer(LightEngine::ShaderType::PixelShader, 1u);
+				// Unbind light sourve from PS
+				sr_manager.unbind_constant_buffer(LightEngine::ShaderType::PixelShader, 0u);
 
 				ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());				
 				

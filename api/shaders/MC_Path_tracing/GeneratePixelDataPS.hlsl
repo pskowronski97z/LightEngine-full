@@ -6,6 +6,7 @@ struct PixelShaderInput {
     float3 tangent_ : VT3_TANGENT;
     float3 bitangent_ : VT3_BITANGENT;
     float3 world_position_ : VT3_POSITION;
+    float3 gouraud_shading : VT3_COLOR1;
 };
 
 struct PixelShaderOutput {
@@ -15,6 +16,10 @@ struct PixelShaderOutput {
     float4 bitangent_ : SV_Target3;
     float4 uvw_ : SV_Target4;
     float4 color_ : SV_Target5;
+};
+
+cbuffer CPU_PROC_DATA : register(b1) {
+    uint4 cpu_data;
 };
 
 PixelShaderOutput main(PixelShaderInput input_pixel, uint primitive_id : SV_PrimitiveID) {
@@ -32,7 +37,9 @@ PixelShaderOutput main(PixelShaderInput input_pixel, uint primitive_id : SV_Prim
     output.uvw_ = float4(input_pixel.uvw_, 1.0);
     output.color_ = input_pixel.color_;
     
+    output.tangent_.w = float(cpu_data.x);
     output.bitangent_.w = float(primitive_id);
+    
     
     return output;
 }

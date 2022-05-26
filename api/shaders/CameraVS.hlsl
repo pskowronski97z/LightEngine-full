@@ -50,7 +50,6 @@ struct PS_INPUT {
     float3 bitangent : VT3_BITANGENT;
     float3 world_position : VT3_POSITION;
     float3 gouraud_shading : VT3_COLOR1;
-    uint instance_id : SV_InstanceID;
 };
 
 float get_attenuation(float distance) {
@@ -68,10 +67,10 @@ float3 gouraud_dir(float3 light_direction, float4 light_color, float3 vertex_nor
     return max(0.0, dot(normalize(-light_direction), vertex_normal)) * light_color;
 }
 
-PS_INPUT main(VS_INPUT input) {
+PS_INPUT main(VS_INPUT input, uint instance_id : SV_InstanceID) {
 	
     PS_INPUT result;
-
+    
     result.position = mul(float4(input.position, 1.0f), camera_matrix_);
     result.position = mul(result.position, projection_matrix_);  
     result.color = input.color;
@@ -84,6 +83,6 @@ PS_INPUT main(VS_INPUT input) {
     result.gouraud_shading = gouraud_pt(coordinates_pt, color_pt, result.world_position, result.normal);
     result.gouraud_shading += gouraud_dir(coordinates_dir, color_dir, result.normal);
     result.gouraud_shading = saturate(result.gouraud_shading);
-     
+    
     return result;
 }

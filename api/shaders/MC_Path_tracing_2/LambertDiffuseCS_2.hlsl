@@ -80,7 +80,7 @@ void main(uint3 groupID : SV_GroupID, uint3 groupThreadID : SV_GroupThreadID) {
     v0_data = geometry_tris_v0[triangle_index].xyz;
     v1_data = geometry_tris_v1[triangle_index].xyz;
     v2_data = geometry_tris_v2[triangle_index].xyz;
-    intersection_c = normalize((1.0 - tuv.y - tuv.z) * v0_data + tuv.y * v1_data + tuv.z * v2_data);
+    intersection_c = (1.0 - tuv.y - tuv.z) * v0_data + tuv.y * v1_data + tuv.z * v2_data;
         
         
     triangle_index.y = 3;
