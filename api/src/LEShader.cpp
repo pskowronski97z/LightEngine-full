@@ -507,6 +507,63 @@ LightEngine::Texture2D::Texture2D(const std::shared_ptr<Core> &core_ptr, const s
 
 }
 
+LightEngine::Texture2D::Texture2D(const std::shared_ptr<Core>& core_ptr, const std::string& name, const uint16_t width, const uint16_t height, const uint32_t *data) :
+	width_(width), height_(height) {
+
+	core_ptr_ = core_ptr;
+	shader_resource_name_ = name;
+
+	descriptor_ = { 0 };
+
+	descriptor_.Width = width_;
+	descriptor_.Height = height_;
+	descriptor_.MipLevels = 0u;
+	descriptor_.ArraySize = 1u;
+	descriptor_.Format = DXGI_FORMAT_R32_UINT;
+	descriptor_.SampleDesc.Count = 1u;
+	descriptor_.SampleDesc.Quality = 0u;
+	descriptor_.Usage = D3D11_USAGE_DEFAULT;
+	descriptor_.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_RENDER_TARGET;
+	descriptor_.CPUAccessFlags = 0;
+
+	call_result_ = core_ptr_->get_device_ptr()->CreateTexture2D(&descriptor_, nullptr, &ptr_);
+	if (FAILED(call_result_))
+		throw LECoreException("<D3D11 ERROR> <Texture2D creation failed>", "LETexture.cpp", __LINE__ - 2, call_result_);
+
+	core_ptr->get_context_ptr()->UpdateSubresource(
+		ptr_.Get(), 
+		0u, 
+		nullptr, data, 
+		static_cast<uint32_t>(width_) * sizeof(uint32_t), 0);
+
+	static const D3D11_SHADER_RESOURCE_VIEW_DESC srvd = {
+		descriptor_.Format,
+		D3D11_SRV_DIMENSION_TEXTURE2D,
+		{0,-1}
+	};
+
+	call_result_ = core_ptr->get_device_ptr()->CreateShaderResourceView(ptr_.Get(), &srvd, &srv_ptr_);
+	if (FAILED(call_result_))
+		throw LECoreException("<D3D11 ERROR> <Texture2D resource view creation failed>", "LETexture.cpp", __LINE__ - 2, call_result_);
+
+	static D3D11_UNORDERED_ACCESS_VIEW_DESC uav_desc;
+
+	uav_desc.Buffer.FirstElement = 0;
+	uav_desc.Buffer.Flags = 0;
+	uav_desc.Buffer.NumElements = width_ * height_;
+	uav_desc.Format = DXGI_FORMAT_R32_UINT;
+	uav_desc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
+
+	call_result_ = core_ptr_->get_device_ptr()->CreateUnorderedAccessView(ptr_.Get(), &uav_desc, uav_ptr_.GetAddressOf());
+	if (FAILED(call_result_))
+		throw LECoreException("<D3D11 ERROR> <Texture2D unordered access view creation failed>", "LETexture.cpp", __LINE__ - 2, call_result_);
+
+	call_result_ = core_ptr_->get_device_ptr()->CreateRenderTargetView(ptr_.Get(), nullptr, rtv_ptr_.GetAddressOf());
+	if (FAILED(call_result_))
+		throw LECoreException("<D3D11 ERROR> <Texture2D render target view creation failed>", "LEShader.cpp", __LINE__ - 2, call_result_);
+
+}
+
 LightEngine::Texture2D LightEngine::Texture2D::store_geometry(const std::shared_ptr<Core>& core_ptr, const std::vector<Vertex3>& vertices) {
 
 	static std::vector<float> processed_data;

@@ -41,38 +41,37 @@ namespace LightEngine {
 
 	namespace GeometryTools {
 		/// <summary>
-		/// This funtion returns a vector of indexes of max. k triangles 
-		/// which are visible to the given triangle (v0, v1, v2) and 
-		/// the distance between it's center to each of k neighbour's center is less than r.
+		/// This funtion performs an evaluation of triangles which are surrounding a 
+		/// single triangle given by its vertices v0, v1, v2.
 		/// </summary>
-		/// <param name="k"> - Maximum number of relevant neighbouring triangles</param>
 		/// <param name="r"> - Maximum distance between given triangle center and neighbour's center</param>
 		/// <param name="triangle_v0"> - First vertex of processed triangle</param>
 		/// <param name="triangle_v1"> - Second vertex of processed triangle</param>
 		/// <param name="triangle_v2"> - Third vertex od processed triangle</param>
-		/// <param name="sampled_triangles_space"> - Space of triangles to find neighbours within</param>
-		/// <returns></returns>
-		__declspec(dllexport) std::vector<int32_t> get_k_visible_neighbours(
-			const uint32_t k,
+		/// <param name="evaluated_tris"> - Vertices of evaluated triangles (Triangle list packing expected)</param>
+		/// <param name="flags"> - Flag vector of size which is equal to the amount of triangles stored in 
+		/// the evaluated triangles vector (eval_tris_size/3). If triangle from that vector passes an evaluation, 
+		/// a flag at the corresponging index is being set to true.</param>
+		/// <returns>No value is returned. This function modifies values of the flags vector. It was designed to
+		/// use for iterating over multiple triangles, using the same flags per one object. </returns>
+		__declspec(dllexport) void evaluate_tris(
 			const float r,
-			const Vertex3& v0,
-			const Vertex3& v1,
-			const Vertex3& v2,
-			const std::vector<Vertex3>& tested_triangles);
-
-		__declspec(dllexport) std::vector<std::vector<int32_t>> get_k_visible_neighbours(
-			const uint32_t k,
+			const Vertex3 &v0,
+			const Vertex3 &v1,
+			const Vertex3 &v2,
+			const std::vector<Vertex3> &evaluated_tris,
+			std::vector<bool> &flags);
+		
+		__declspec(dllexport) std::vector<uint32_t> calculate_neighbouring_geometry(
 			const float r,
 			const std::vector<Vertex3>& testing_triangles,
 			const std::vector<Vertex3>& tested_triangles);
 
-		__declspec(dllexport) int32_t *generate_lookup_matrix(
-			const uint32_t objects_count,
-			const uint32_t max_triangles_count,
-			const uint32_t k,
+		__declspec(dllexport) uint32_t *generate_lookup_matrix(
 			const float r,
-			const std::vector<Geometry<Vertex3>> &separated_objects,
-			const std::vector<Vertex3> &merged_objects_triangles);
+			const std::vector<Geometry<Vertex3>> &testing_geometry,
+			const std::vector<Vertex3> &tested_geometry,
+			uint32_t &width);
 
 	}
 

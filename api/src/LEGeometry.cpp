@@ -290,15 +290,13 @@ void LightEngine::LightSource::set_intensity(float intensity) {
 	parameters.additional[0] = intensity;
 }
 
-std::vector<int32_t> LightEngine::GeometryTools::get_k_visible_neighbours(
-	const uint32_t k,
+void LightEngine::GeometryTools::evaluate_tris(
 	const float r,
-	const Vertex3& v0,
-	const Vertex3& v1,
-	const Vertex3& v2,
-	const std::vector<Vertex3>& tested_triangles) {
-
-	std::vector<int32_t> result(k, -1);
+	const Vertex3 &v0,
+	const Vertex3 &v1,
+	const Vertex3 &v2,
+	const std::vector<Vertex3> &evaluated_tris,
+	std::vector<bool> &flags) {
 
 	DirectX::XMVECTOR triangle_center_pos = DirectX::XMVectorBaryCentric(
 		DirectX::XMVectorSet(v0.position_.x, v0.position_.y, v0.position_.z, 0.0),
@@ -317,21 +315,21 @@ std::vector<int32_t> LightEngine::GeometryTools::get_k_visible_neighbours(
 			0.33f)
 	);
 	
-	for (uint32_t i = 0, triangle_index = 0, itr = 0; i < tested_triangles.size(); i += 3, triangle_index++) {
+	for (uint32_t i = 0, triangle_index = 0, itr = 0; i < evaluated_tris.size(); i += 3, triangle_index++) {
 
 		DirectX::XMVECTOR sample_triangle_center_pos = DirectX::XMVectorBaryCentric(
-			DirectX::XMVectorSet(tested_triangles[i].position_.x, tested_triangles[i].position_.y, tested_triangles[i].position_.z, 0.0),
-			DirectX::XMVectorSet(tested_triangles[i + 1].position_.x, tested_triangles[i + 1].position_.y, tested_triangles[i + 1].position_.z, 0.0),
-			DirectX::XMVectorSet(tested_triangles[i + 2].position_.x, tested_triangles[i + 2].position_.y, tested_triangles[i + 2].position_.z, 0.0),
+			DirectX::XMVectorSet(evaluated_tris[i].position_.x, evaluated_tris[i].position_.y, evaluated_tris[i].position_.z, 0.0),
+			DirectX::XMVectorSet(evaluated_tris[i + 1].position_.x, evaluated_tris[i + 1].position_.y, evaluated_tris[i + 1].position_.z, 0.0),
+			DirectX::XMVectorSet(evaluated_tris[i + 2].position_.x, evaluated_tris[i + 2].position_.y, evaluated_tris[i + 2].position_.z, 0.0),
 			0.33f,
 			0.33f
 		);
 
 		DirectX::XMVECTOR sample_triangle_center_n = DirectX::XMVector3Normalize(
 			DirectX::XMVectorBaryCentric(
-				DirectX::XMVectorSet(tested_triangles[i].normal_.x, tested_triangles[i].normal_.y, tested_triangles[i].normal_.z, 0.0),
-				DirectX::XMVectorSet(tested_triangles[i + 1].normal_.x, tested_triangles[i + 1].normal_.y, tested_triangles[i + 1].normal_.z, 0.0),
-				DirectX::XMVectorSet(tested_triangles[i + 2].normal_.x, tested_triangles[i + 2].normal_.y, tested_triangles[i + 2].normal_.z, 0.0),
+				DirectX::XMVectorSet(evaluated_tris[i].normal_.x, evaluated_tris[i].normal_.y, evaluated_tris[i].normal_.z, 0.0),
+				DirectX::XMVectorSet(evaluated_tris[i + 1].normal_.x, evaluated_tris[i + 1].normal_.y, evaluated_tris[i + 1].normal_.z, 0.0),
+				DirectX::XMVectorSet(evaluated_tris[i + 2].normal_.x, evaluated_tris[i + 2].normal_.y, evaluated_tris[i + 2].normal_.z, 0.0),
 				0.33f,
 				0.33f
 			)
@@ -354,67 +352,109 @@ std::vector<int32_t> LightEngine::GeometryTools::get_k_visible_neighbours(
 		if (DirectX::XMVector3Dot(sight_line, sample_triangle_center_n).m128_f32[0] <= 0.0f)
 			continue;
 
-		result.at(itr) = triangle_index;
-		itr++;
-
-		if (itr == k)
-			break;
+		flags.at(triangle_index) = true;
 	}
-
-	return result;
 }
 
-std::vector<std::vector<int32_t>> LightEngine::GeometryTools::get_k_visible_neighbours(
-	const uint32_t k, 
+std::vector<uint32_t> LightEngine::GeometryTools::calculate_neighbouring_geometry(
 	const float r, 
 	const std::vector<Vertex3> &testing_triangles, 
 	const std::vector<Vertex3> &tested_triangles) {
 	
-	std::vector<std::vector<int32_t>> result(testing_triangles.size()/3);
+	std::vector<uint32_t> result;
+	result.reserve(testing_triangles.size() / 3);
+	result.push_back(0);
+	std::vector<bool> object_neighbours_flags(tested_triangles.size() / 3, false);
 
-	for (int i = 0, j = 0; i < testing_triangles.size(); i += 3, j++) {
-		result.at(j) = get_k_visible_neighbours(
-			k,
+	for (int i = 0; i < testing_triangles.size(); i += 3) {
+		evaluate_tris(
 			r,
 			testing_triangles.at(i),
 			testing_triangles.at(i + 1),
 			testing_triangles.at(i + 2),
-			tested_triangles
+			tested_triangles,
+			object_neighbours_flags
 		);
 	}
+
+	for (int i = 0; i < object_neighbours_flags.size(); i++) 
+		if (object_neighbours_flags.at(i))
+			result.push_back(i);
+
+	result.at(0) = result.size();
+	
 	return result;
 }
 
-int32_t *LightEngine::GeometryTools::generate_lookup_matrix(
-	const uint32_t objects_count, 
-	const uint32_t max_triangles_count, 
-	const uint32_t k, 
+
+uint32_t* LightEngine::GeometryTools::generate_lookup_matrix(
 	const float r, 
-	const std::vector<Geometry<Vertex3>>& separated_objects,
-	const std::vector<Vertex3>& merged_objects_triangles) {
+	const std::vector<Geometry<Vertex3>> &testing_geometry, 
+	const std::vector<Vertex3> &tested_geometry,
+	uint32_t &width) {
 
-	const uint32_t depth_pitch = objects_count * max_triangles_count;
-	int32_t *result = new int32_t[ depth_pitch * k];
-	ZeroMemory(result, depth_pitch * k);
-	
-	for (int object_index = 0; object_index < separated_objects.size(); object_index++) {
+	width = 0;
 
-		std::vector<std::vector<int32_t>> object_lookup = get_k_visible_neighbours(
-			k,
+	std::vector<std::vector<uint32_t>> lookup_table;
+
+	for (auto& geometry : testing_geometry) {
+		std::vector<uint32_t> indices = calculate_neighbouring_geometry(
 			r,
-			separated_objects.at(object_index).get_vertices_vector(),
-			merged_objects_triangles
-		);
+			geometry.get_vertices_vector(),
+			tested_geometry);
 
-		for (int triangle_index = 0; triangle_index < object_lookup.size(); triangle_index++) {
-			
-			for (int neighbour_index = 0; neighbour_index < k; neighbour_index++) {
+		if (indices.at(0) > width)
+			width = indices.at(0);
 
-				uint32_t lookup_dst_index = triangle_index + object_index * max_triangles_count + neighbour_index * depth_pitch;
-				result[lookup_dst_index] = object_lookup.at(triangle_index).at(neighbour_index);
+		lookup_table.push_back(indices);
+	}
 
-			}			
+	const uint32_t height = testing_geometry.size();
+	uint32_t *result = new uint32_t[width * height];
+	ZeroMemory(result, width * height);
+
+	for (int object_itr = 0; object_itr < height; object_itr++) {
+
+		for (int tri_index_itr = 0; tri_index_itr < lookup_table.at(object_itr).size(); tri_index_itr++) {
+
+			uint32_t dst_index = object_itr * width + tri_index_itr;
+			result[dst_index] = lookup_table.at(object_itr).at(tri_index_itr);
 		}
 	}
+
 	return result;
 }
+//
+//int32_t *LightEngine::GeometryTools::generate_lookup_matrix(
+//	const uint32_t objects_count, 
+//	const uint32_t max_triangles_count, 
+//	const uint32_t k, 
+//	const float r, 
+//	const std::vector<Geometry<Vertex3>>& separated_objects,
+//	const std::vector<Vertex3>& merged_objects_triangles) {
+//
+//	const uint32_t depth_pitch = objects_count * max_triangles_count;
+//	int32_t *result = new int32_t[ depth_pitch * k];
+//	ZeroMemory(result, depth_pitch * k);
+//	
+//	for (int object_index = 0; object_index < separated_objects.size(); object_index++) {
+//
+//		std::vector<std::vector<int32_t>> object_lookup = get_k_visible_neighbours(
+//			k,
+//			r,
+//			separated_objects.at(object_index).get_vertices_vector(),
+//			merged_objects_triangles
+//		);
+//
+//		for (int triangle_index = 0; triangle_index < object_lookup.size(); triangle_index++) {
+//			
+//			for (int neighbour_index = 0; neighbour_index < k; neighbour_index++) {
+//
+//				uint32_t lookup_dst_index = triangle_index + object_index * max_triangles_count + neighbour_index * depth_pitch;
+//				result[lookup_dst_index] = object_lookup.at(triangle_index).at(neighbour_index);
+//
+//			}			
+//		}
+//	}
+//	return result;
+//}
