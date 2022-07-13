@@ -15,12 +15,12 @@ namespace LightEngine {
 		float far_z_;
 		float ortho_scaling_;
 		bool is_ortho_;
-		float camera_world_position_[3];
-		struct TransformMatrices {
+		struct CameraData {
 			DirectX::XMMATRIX view_matrix;
 			DirectX::XMMATRIX projection_matrix;
+			DirectX::XMVECTOR world_position;
 		};
-		TransformMatrices transform_matrices_;	
+		CameraData camera_data_;	
 		Camera(std::shared_ptr<Core> core_ptr);
 
 	public:

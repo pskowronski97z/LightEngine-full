@@ -15,15 +15,15 @@ LightEngine::Camera::Camera(std::shared_ptr<Core> core_ptr) : ConstantBuffer(cor
 	far_z_ = 400.0f;
 	is_ortho_ = false;
 	ortho_scaling_ = 20.0;
-	camera_world_position_[0] = 0.0;
-	camera_world_position_[1] = 0.0;
-	camera_world_position_[2] = 0.0;
+	camera_data_.world_position.m128_f32[0] = 0.0;
+	camera_data_.world_position.m128_f32[1] = 0.0;
+	camera_data_.world_position.m128_f32[2] = 0.0;
 
 	update_projection_matrix();
 	reset();
 
 	try {
-		create_constant_buffer<TransformMatrices>(std::make_shared<TransformMatrices>(transform_matrices_));
+		create_constant_buffer<CameraData>(std::make_shared<CameraData>(camera_data_));
 	}
 	catch (const LightEngine::LECoreException &e) {
 		std::cout<<e.what();
@@ -45,14 +45,14 @@ void LightEngine::Camera::set_clipping_far(float far_z) { far_z_ = far_z; }
 
 void LightEngine::Camera::update_projection_matrix() {
 	if(is_ortho_)
-		transform_matrices_.projection_matrix = DirectX::XMMatrixOrthographicLH(aspect_ratio_*ortho_scaling_, ortho_scaling_, near_z_, far_z_);
+		camera_data_.projection_matrix = DirectX::XMMatrixOrthographicLH(aspect_ratio_*ortho_scaling_, ortho_scaling_, near_z_, far_z_);
 	else
-		transform_matrices_.projection_matrix = DirectX::XMMatrixPerspectiveFovLH(fov_, aspect_ratio_, near_z_, far_z_);
+		camera_data_.projection_matrix = DirectX::XMMatrixPerspectiveFovLH(fov_, aspect_ratio_, near_z_, far_z_);
 }
 
 void LightEngine::Camera::bind(short slot) {
 	bind_vs_buffer(slot);
-	//bind_ps_buffer(slot);
+	bind_ps_buffer(slot);
 }
 
 void LightEngine::Camera::set_perspective_projection() { is_ortho_ = false; }
@@ -61,13 +61,17 @@ void LightEngine::Camera::set_orthographic_projection() { is_ortho_ = true; }
 
 void LightEngine::Camera::update() {
 
-	TransformMatrices transposed_matrices;
+	/*std::cout << camera_data_.world_position.m128_f32[0] << ", "
+		<< camera_data_.world_position.m128_f32[1] << ", "
+		<< camera_data_.world_position.m128_f32[2] << "\n";*/
 
-	transposed_matrices.view_matrix = XMMatrixTranspose(transform_matrices_.view_matrix);
-	transposed_matrices.projection_matrix = XMMatrixTranspose(transform_matrices_.projection_matrix);
-		
+	CameraData camera_data_cbuffer;
+	camera_data_cbuffer.view_matrix = XMMatrixTranspose(camera_data_.view_matrix);
+	camera_data_cbuffer.projection_matrix = XMMatrixTranspose(camera_data_.projection_matrix);
+	camera_data_cbuffer.world_position = camera_data_.world_position;
+
 	try {
-		update_constant_buffer<TransformMatrices>(std::make_shared<TransformMatrices>(transposed_matrices));
+		update_constant_buffer<CameraData>(std::make_shared<CameraData>(camera_data_cbuffer));
 	}
 	catch (const LightEngine::LECoreException &e) {
 		std::cout<<e.what();
@@ -77,7 +81,7 @@ void LightEngine::Camera::update() {
 }
 
 void LightEngine::Camera::reset() {
-	transform_matrices_.view_matrix = DirectX::XMMatrixSet(
+	camera_data_.view_matrix = DirectX::XMMatrixSet(
 		1, 0, 0, 0,
 		0, 1, 0, 0,
 		0, 0, 1, 0,
@@ -86,7 +90,7 @@ void LightEngine::Camera::reset() {
 }
 
 std::shared_ptr<const DirectX::XMMATRIX> LightEngine::Camera::get_camera_matrix() {
-	return std::make_shared<const DirectX::XMMATRIX>(transform_matrices_.view_matrix);
+	return std::make_shared<const DirectX::XMMATRIX>(camera_data_.view_matrix);
 }
 
 void LightEngine::Camera::update_view_matrix() {}
@@ -94,22 +98,25 @@ void LightEngine::Camera::update_view_matrix() {}
 LightEngine::FPSCamera::FPSCamera(std::shared_ptr<Core> core_ptr) : Camera(core_ptr) {
 	horizontal_angle_ = 0;
 	vertical_angle_ = 0;
-	camera_world_position_[0] = 0;
-	camera_world_position_[1] = 0;
-	camera_world_position_[2] = 0;
+	camera_data_.world_position.m128_f32[0] = 0.0;
+	camera_data_.world_position.m128_f32[1] = 0.0;
+	camera_data_.world_position.m128_f32[2] = 0.0;
 }
 
 void LightEngine::FPSCamera::update_view_matrix() {
 
-	transform_matrices_.view_matrix = DirectX::XMMatrixSet(
+	//TODO: Fix the camera world position updates (make it working like with arcball)
+	camera_data_.view_matrix = DirectX::XMMatrixSet(
 		1, 0, 0, 0,
 		0, 1, 0, 0,
 		0, 0, 1, 0,
-		camera_world_position_[0], camera_world_position_[1], camera_world_position_[2], 1
+		camera_data_.world_position.m128_f32[0],
+		camera_data_.world_position.m128_f32[1],
+		camera_data_.world_position.m128_f32[2], 1
 	);
 
-	transform_matrices_.view_matrix *= DirectX::XMMatrixRotationY(vertical_angle_);
-	transform_matrices_.view_matrix *= DirectX::XMMatrixRotationX(horizontal_angle_);
+	camera_data_.view_matrix *= DirectX::XMMatrixRotationY(vertical_angle_);
+	camera_data_.view_matrix *= DirectX::XMMatrixRotationX(horizontal_angle_);
 
 }
 
@@ -122,25 +129,25 @@ void LightEngine::FPSCamera::modify_vertical_angle(float delta_angle) {
 }
 
 void LightEngine::FPSCamera::move_relative_z(float delta) {
-	camera_world_position_[0] += delta * DirectX::XMScalarSin(-vertical_angle_);
-	camera_world_position_[2] += delta * DirectX::XMScalarCos(-vertical_angle_);
+	camera_data_.world_position.m128_f32[0] += delta * DirectX::XMScalarSin(-vertical_angle_);
+	camera_data_.world_position.m128_f32[2] += delta * DirectX::XMScalarCos(-vertical_angle_);
 }
 
 void LightEngine::FPSCamera::move_relative_x(float delta) {
-	camera_world_position_[0] += delta * DirectX::XMScalarCos(vertical_angle_);
-	camera_world_position_[2] += delta * DirectX::XMScalarSin(vertical_angle_);
+	camera_data_.world_position.m128_f32[0] += delta * DirectX::XMScalarCos(vertical_angle_);
+	camera_data_.world_position.m128_f32[2] += delta * DirectX::XMScalarSin(vertical_angle_);
 }
 
 void LightEngine::FPSCamera::move_y(float delta) {
-	camera_world_position_[1] += delta;
+	camera_data_.world_position.m128_f32[1] += delta;
 }
 
 void LightEngine::FPSCamera::reset() {
 	horizontal_angle_ = 0;
 	vertical_angle_ = 0;
-	camera_world_position_[0] = 0;
-	camera_world_position_[1] = 0;
-	camera_world_position_[2] = 0;
+	camera_data_.world_position.m128_f32[0] = 0;
+	camera_data_.world_position.m128_f32[1] = 0;
+	camera_data_.world_position.m128_f32[2] = 0;
 
 	update_view_matrix();
 }
@@ -153,7 +160,7 @@ LightEngine::ArcballCamera::ArcballCamera(std::shared_ptr<Core> core_ptr, float 
 	center_[1] = 0.0;
 	center_[2] = 0.0;
 
-	camera_world_position_[2] = -radius;
+	camera_data_.world_position.m128_f32[2] = -radius;
 
 	update_view_matrix();
 	update();
@@ -168,22 +175,22 @@ void LightEngine::ArcballCamera::update_view_matrix() {
 	camera_world_position.m128_f32[2] = -radius_;
 	camera_world_position.m128_f32[3] = 1.0;
 
-	transform_matrices_.view_matrix = DirectX::XMMatrixSet(
+	camera_data_.view_matrix = DirectX::XMMatrixSet(
 	1.0, 0.0, 0.0, 0.0,
 	0.0, 1.0, 0.0, 0.0,
 	0.0, 0.0, 1.0, 0.0,
 	-center_[0], -center_[1], -center_[2], 1.0);
 	
-	transform_matrices_.view_matrix *= DirectX::XMMatrixRotationY(vertical_angle_);
-	transform_matrices_.view_matrix *= DirectX::XMMatrixRotationX(horizontal_angle_);
-	transform_matrices_.view_matrix.r[3].m128_f32[2] += radius_;
+	camera_data_.view_matrix *= DirectX::XMMatrixRotationY(vertical_angle_);
+	camera_data_.view_matrix *= DirectX::XMMatrixRotationX(horizontal_angle_);
+	camera_data_.view_matrix.r[3].m128_f32[2] += radius_;
 
 	camera_world_position = DirectX::XMVector4Transform(camera_world_position, DirectX::XMMatrixRotationX(-horizontal_angle_));
 	camera_world_position = DirectX::XMVector4Transform(camera_world_position, DirectX::XMMatrixRotationY(-vertical_angle_));
 
-	camera_world_position_[0] = camera_world_position.m128_f32[0] + center_[0];
-	camera_world_position_[1] = camera_world_position.m128_f32[1] + center_[1];
-	camera_world_position_[2] = camera_world_position.m128_f32[2] + center_[2];
+	camera_data_.world_position.m128_f32[0] = camera_world_position.m128_f32[0] + center_[0];
+	camera_data_.world_position.m128_f32[1] = camera_world_position.m128_f32[1] + center_[1];
+	camera_data_.world_position.m128_f32[2] = camera_world_position.m128_f32[2] + center_[2];
 
 }
 
