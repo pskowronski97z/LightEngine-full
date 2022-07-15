@@ -6,7 +6,7 @@ struct PS_INPUT {
     float3 tangent : VT3_TANGENT;
     float3 bitangent : VT3_BITANGENT;
     float3 world_position : VT3_POSITION;
-    float3 gouraud_shading : VT3_COLOR1;
+    float3 depth : VT3_COLOR1;
 };
 
 struct LIGHT_SOURCE {

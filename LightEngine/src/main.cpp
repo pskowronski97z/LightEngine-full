@@ -16,14 +16,14 @@
 #include <LEFrontend.h>
 #include <LEBackend.h>
 #include <FilePaths.h>
-
+#define RSM
 
 int main(int argc, const char** argv) {
 
 	AppWindow::Window window("LightEngine v1.0", 1000, 640);
 	window.set_style(AppWindow::Style::MAXIMIZE);
 	//window.set_style(AppWindow::Style::MINIMIZE);
-	//window.set_style(AppWindow::Style::SIZEABLE);
+	window.set_style(AppWindow::Style::SIZEABLE);
 	window.set_icon("LE.ico");
 
 	float color[4]{ 0.15,0.15,0.15 };
@@ -55,11 +55,12 @@ int main(int argc, const char** argv) {
 
 		LightEngine::VertexShader vs(core, shader_directory + L"CameraVS.cso");
 		LightEngine::PixelShader diffuse_ps(core, shader_directory + L"DirectDiffusePS.cso");
+		LightEngine::PixelShader gbuffer_ps(core, shader_directory + L"GBufferPS.cso");
 		
 		LightEngine::FPSCamera fps_camera(core);
 		fps_camera.update();
 
-		LightEngine::ArcballCamera arcball_camera(core, 50.0);
+		LightEngine::ArcballCamera direct_light_pov(core, 50.0);
 
 		LightEngine::LightSource point_light(core, 1.0);
 		LightEngine::LightSource direct_light(core, 0.0);
@@ -71,30 +72,47 @@ int main(int argc, const char** argv) {
 		LightEngine::Sampler sampler_trilinear(core, LightEngine::Sampler::Filtering::TRILINEAR);
 		LightEngine::Sampler sampler_anisotropic(core, LightEngine::Sampler::Filtering::ANISOTROPIC);
 		
-		direct_light.set_position(direct_light_position);
 		
-		point_light.bind_ps_buffer(1);
-		point_light.bind_vs_buffer(1);
+		//point_light.bind_ps_buffer(1);
+		//point_light.bind_vs_buffer(1);
+		//point_light.update();
+
 		direct_light.bind_ps_buffer(2);
-		direct_light.bind_vs_buffer(2);
+		//direct_light.bind_vs_buffer(2);
 
 		sampler_anisotropic.bind(0);
 
-		point_light.update();
+		direct_light_pov.set_orthographic_projection();
+		direct_light_pov.modify_horizontal_angle(-30.0f);
+		direct_light_pov.modify_vertical_angle(30.0f);
+		direct_light_pov.update_view_matrix();
+		direct_light_pov.update();
 
-		//arcball_camera.modify_center(0,7.0f,0);
-		arcball_camera.modify_horizontal_angle(-30.0f);
-		arcball_camera.modify_vertical_angle(30.0f);
-		arcball_camera.update_view_matrix();
-		arcball_camera.update();
+		//direct_light_pov.bind(0);
+		direct_light_pov.bind(1);
 
-		arcball_camera.bind(0);
+		LightEngine::ShaderResourceManager shader_resource_manager(core);
 
-		
+		#ifdef RSM
 
-		int vp_width = 0;
-		int vp_height = 0;
+		const int shadow_map_w = 512;
+		const int shadow_map_h = 512;
 
+		static float zeros[4 * shadow_map_w * shadow_map_h];
+		ZeroMemory(zeros, 4 * shadow_map_w * shadow_map_h);
+		LightEngine::Texture2D gbuffer_world_position(core, "GBuffer world position", shadow_map_w, shadow_map_h, zeros);
+		LightEngine::Texture2D gbuffer_normal(core, "GBuffer normal", shadow_map_w, shadow_map_h, zeros);
+		LightEngine::Texture2D gbuffer_depth(core, "GBuffer depth", shadow_map_w, shadow_map_h, zeros);
+
+		direct_light_pov.set_aspect_ratio((float)shadow_map_w / (float)shadow_map_h);
+		direct_light_pov.update_projection_matrix();
+		direct_light_pov.update();
+
+		core->add_texture_to_render(gbuffer_world_position, 0u);
+		core->add_texture_to_render(gbuffer_normal, 1u);
+		core->add_texture_to_render(gbuffer_depth, 2u);
+
+		#endif
 
 		while (WM_QUIT != msg.message) {
 
@@ -108,7 +126,7 @@ int main(int argc, const char** argv) {
 				ImGui_ImplWin32_NewFrame();
 				ImGui::NewFrame();
 
-				ImGui::DockSpaceOverViewport(0, ImGuiDockNodeFlags_PassthruCentralNode, 0);
+				//ImGui::DockSpaceOverViewport(0, ImGuiDockNodeFlags_PassthruCentralNode, 0);
 
 				if (window.was_resized()) {
 
@@ -128,7 +146,13 @@ int main(int argc, const char** argv) {
 							if (ImGui::MenuItem("Import")) {
 								std::string path = AppWindow::open_file_dialog(model_file_filter, model_file_filter_size);
 								if (path != "") {
-									std::vector<LightEngine::Geometry<LightEngine::Vertex3>> object_set = LightEngine::Geometry<LightEngine::Vertex3>::load_from_obj(core, path, nullptr, 0);
+									const float **colors = new const float*[3]; 
+									colors[0] = new float[3]{ 1.0, 1.0, 1.0 };
+									colors[1] = new float[3]{ 1.0, 1.0, 0.4 };
+									colors[2] = new float[3]{ 0.2, 0.6, 1.0 };
+
+
+									std::vector<LightEngine::Geometry<LightEngine::Vertex3>> object_set = LightEngine::Geometry<LightEngine::Vertex3>::load_from_obj(core, path, colors, 3);
 									for (auto& object : object_set) {
 										scene.push_back(object);
 									}
@@ -174,16 +198,28 @@ int main(int argc, const char** argv) {
 
 					ImGui::SameLine();
 
-					if (ImGui::RadioButton("Arcball", &camera, 1)) {
-						std::cout << "Arcball camera selected" << std::endl;
-						arcball_camera.bind(0);
+					if (ImGui::RadioButton("Direct light POV", &camera, 1)) {
+						std::cout << "Direct light POV selected" << std::endl;
+						direct_light_pov.bind(0);
 						update_camera = true;
 					}
 
 					if (camera) {
-						if (ImGui::SliderInt("FOV", &arcball_fov, 0, 180)) {
-							arcball_camera.set_fov((float)arcball_fov);
-							arcball_camera.update_projection_matrix();
+						if (ImGui::SliderInt("Scaling", &orthographic_scaling, 1, 100)) {
+							direct_light_pov.set_orthographic_scaling((float)orthographic_scaling);
+							direct_light_pov.update_projection_matrix();
+							update_camera = true;
+						}
+
+						if (ImGui::SliderInt("Far Z", &lc_far_z, lc_near_z + 1, 500)) {
+							direct_light_pov.set_clipping_far((float)lc_far_z);
+							direct_light_pov.update_projection_matrix();
+							update_camera = true;
+						}
+
+						if (ImGui::SliderInt("Near Z", &lc_near_z, 0, lc_far_z - 1)) {
+							direct_light_pov.set_clipping_near((float)lc_near_z);
+							direct_light_pov.update_projection_matrix();
 							update_camera = true;
 						}
 					}
@@ -199,7 +235,7 @@ int main(int argc, const char** argv) {
 					if (ImGui::Button("Reset camera", ImVec2(150, 30))) {
 
 						if (camera)
-							arcball_camera.reset();
+							direct_light_pov.reset();
 						else
 							fps_camera.reset();
 						update_camera = true;
@@ -211,7 +247,7 @@ int main(int argc, const char** argv) {
 
 					ImGui::Begin("Light Sources");
 
-					if (ImGui::BeginMenu("Point light")) {
+					/*if (ImGui::BeginMenu("Point light")) {
 						if (ImGui::CollapsingHeader("Color")) {
 							if (ImGui::ColorPicker3("Color", point_light_color)) {
 								point_light.set_color(point_light_color);
@@ -231,20 +267,20 @@ int main(int argc, const char** argv) {
 
 						ImGui::EndMenu();
 					}
-
-					if (ImGui::BeginMenu("Direct light")) {
+					*/
+					//if (ImGui::BeginMenu("Direct light")) {
 						if (ImGui::ColorPicker3("Color", direct_light_color)) {
 							direct_light.set_color(direct_light_color);
 							update_light = true;
 						}
 
-						if (ImGui::DragFloat("Intensity", &direct_light_intensity, 10.0f, 1.0f, 1000.0f, "%.2f")) {
+						if (ImGui::DragFloat("Intensity", &direct_light_intensity, 0.05f, 0.0f, 100.0f, "%.2f")) {
 							direct_light.set_intensity(direct_light_intensity);
 							update_light = true;
 						}
 
-						ImGui::EndMenu();
-					}
+						//ImGui::EndMenu();
+					//}
 
 					ImGui::End();
 					ImGui::Render();
@@ -265,22 +301,22 @@ int main(int argc, const char** argv) {
 					if (camera) {
 
 						if (AppWindow::IO::Mouse::left_button_down()) {
-							arcball_camera.modify_vertical_angle(-cursor_x_delta * ORBITING_SENSITIVITY);
-							arcball_camera.modify_horizontal_angle(-cursor_y_delta * ORBITING_SENSITIVITY);
-							arcball_camera.update_view_matrix();
+							direct_light_pov.modify_vertical_angle(-cursor_x_delta * ORBITING_SENSITIVITY);
+							direct_light_pov.modify_horizontal_angle(-cursor_y_delta * ORBITING_SENSITIVITY);
+							direct_light_pov.update_view_matrix();
 							update_camera = true;
 						}
 
 						if (AppWindow::IO::Mouse::middle_button_down()) {
-							arcball_camera.pan_horizontal(-cursor_x_delta * PANNING_SENSITIVITY);
-							arcball_camera.pan_vertical(cursor_y_delta * PANNING_SENSITIVITY);
-							arcball_camera.update_view_matrix();
+							direct_light_pov.pan_horizontal(-cursor_x_delta * PANNING_SENSITIVITY);
+							direct_light_pov.pan_vertical(cursor_y_delta * PANNING_SENSITIVITY);
+							direct_light_pov.update_view_matrix();
 							update_camera = true;
 						}
 
 						if (wheel_d) {
-							arcball_camera.modify_radius(-wheel_d * ZOOM_SENSITIVITY);
-							arcball_camera.update_view_matrix();
+							direct_light_pov.modify_radius(-wheel_d * ZOOM_SENSITIVITY);
+							direct_light_pov.update_view_matrix();
 							update_camera = true;
 						}
 
@@ -337,7 +373,7 @@ int main(int argc, const char** argv) {
 					if (camera == 0)
 						fps_camera.update();
 					else
-						arcball_camera.update();
+						direct_light_pov.update();
 
 
 					update_camera = false;
@@ -351,33 +387,61 @@ int main(int argc, const char** argv) {
 
 
 				if (update_viewport) {
-					vp_width = window.get_width();
-					vp_height = window.get_height();
+
+					int vp_width = window.get_width();
+					int vp_height = window.get_height();
 
 					core->viewport_setup(0, 0, vp_width, vp_height);
-					arcball_camera.set_aspect_ratio((float)vp_width / (float)vp_height);
-					arcball_camera.update_projection_matrix();
+					
 					fps_camera.set_aspect_ratio((float)vp_width / (float)vp_height);
-					fps_camera.update_projection_matrix();
-
-					arcball_camera.update();
+					fps_camera.update_projection_matrix();			
 					fps_camera.update();
 					update_viewport = false;
 				}
 
 				core->clear_frame_buffer(color);
+				core->flush_render_targets();
 
-				for (int i = 0; i < scene.size(); i++) {
 
+				#ifdef RSM
+				{
 					vs.bind();
+					direct_light_pov.bind(0);
+					gbuffer_ps.bind();
+					core->render_to_textures();
+					core->viewport_setup(0, 0, shadow_map_w, shadow_map_h);
+
+					for (int i = 0; i < scene.size(); i++) {
+						scene[i].bind_vertex_buffer();
+						scene[i].bind_topology();
+						scene[i].draw(0);
+					}
+
+					core->render_to_frame_buffer();
+					
+
+					if (camera)
+						direct_light_pov.bind(0);
+					else {
+						fps_camera.bind(0);
+						core->viewport_setup(0, 0, window.get_width(), window.get_height());
+					}
+						
+
 					diffuse_ps.bind();
 
-					scene[i].bind_vertex_buffer();
-					scene[i].bind_topology();
-					scene[i].draw(0);
-				}
+					gbuffer_depth.generate_mip_maps();
+					shader_resource_manager.bind_texture_buffer(gbuffer_depth, LightEngine::ShaderType::PixelShader, 0u);
 
-				
+					for (int i = 0; i < scene.size(); i++) {
+						scene[i].bind_vertex_buffer();
+						scene[i].bind_topology();
+						scene[i].draw(0);
+					}
+					shader_resource_manager.unbind_texture_buffer(LightEngine::ShaderType::PixelShader, 0u);
+
+				}
+				#endif 
 
 				ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 

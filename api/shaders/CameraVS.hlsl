@@ -49,7 +49,7 @@ struct PS_INPUT {
     float3 tangent : VT3_TANGENT;
     float3 bitangent : VT3_BITANGENT;
     float3 world_position : VT3_POSITION;
-    float3 gouraud_shading : VT3_COLOR1;
+    float3 depth: VT3_COLOR1;
 };
 
 float get_attenuation(float distance) {
@@ -79,10 +79,9 @@ PS_INPUT main(VS_INPUT input, uint instance_id : SV_InstanceID) {
     result.tangent = input.tangent;
     result.bitangent = input.bitangent;
     result.world_position = input.position;
-  
-    result.gouraud_shading = gouraud_pt(coordinates_pt, color_pt, result.world_position, result.normal);
-    result.gouraud_shading += gouraud_dir(coordinates_dir, color_dir, result.normal);
-    result.gouraud_shading = saturate(result.gouraud_shading);
+    float depth = result.position.z / result.position.w;
+    result.depth = float3(depth, depth, depth);
+    
     
     return result;
 }

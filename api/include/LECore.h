@@ -12,7 +12,7 @@ namespace LightEngine {
 	class RenderableTexture;
 	template <class T> class Geometry;
 	class Camera;
-	class AbstractTexture;
+	class Texture2D;
 	struct TransformMatrices;
 	
 	class __declspec(dllexport) Core {
@@ -23,7 +23,7 @@ namespace LightEngine {
 		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> frame_buffer_rtv_ptr_;
 		ID3D11RenderTargetView *render_targets[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT];
 		Microsoft::WRL::ComPtr<ID3D11DepthStencilView> frame_buffer_dsv_ptr_;
-		Microsoft::WRL::ComPtr<ID3D11DepthStencilView> default_dsv_ptr_;
+		Microsoft::WRL::ComPtr<ID3D11DepthStencilView> texture_dsv_ptr_;
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> frame_buffer_ptr_;
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> depth_texture_ms_ptr_;
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> depth_texture_ptr_;
@@ -35,7 +35,7 @@ namespace LightEngine {
 		Core(HWND window_handle_, int viewport_width, int viewport_height);
 		Core(const Core&) = delete;	// deleting copy constructor (optional)
 		Core& operator=(const Core&) = delete; // deleting assignment operator (optional)
-		void add_texture_to_render(AbstractTexture &texture, uint8_t slot);
+		void add_texture_to_render(Texture2D &texture, uint8_t slot);
 		void clear_textures_to_render();
 		void release_render_targets();
 		void clear_frame_buffer(float r, float g, float b, float a) const;
