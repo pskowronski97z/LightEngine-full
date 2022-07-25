@@ -8,9 +8,9 @@
 LightEngine::Sampler::Sampler(std::shared_ptr<Core> core_ptr, Filtering filtering) : CoreUser(core_ptr){
 	D3D11_SAMPLER_DESC sampler_desc_ = {};
 	sampler_desc_.Filter = (D3D11_FILTER)filtering;
-	sampler_desc_.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-	sampler_desc_.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-	sampler_desc_.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampler_desc_.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampler_desc_.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampler_desc_.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
 	sampler_desc_.MaxAnisotropy = D3D11_REQ_MAXANISOTROPY;
 	sampler_desc_.MipLODBias = 0.0f;
 	sampler_desc_.MinLOD = 0.0f;

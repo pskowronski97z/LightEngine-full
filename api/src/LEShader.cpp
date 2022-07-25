@@ -479,15 +479,47 @@ LightEngine::Texture2D::Texture2D(const std::shared_ptr<Core> &core_ptr, const s
 
 	core_ptr->get_context_ptr()->UpdateSubresource(ptr_.Get(), 0u, nullptr, data, static_cast<uint32_t>(width_) * 4 * sizeof(float), 0);
 
+	D3D11_TEXTURE2D_DESC depth_texture_desc = { 0 };
+
+	depth_texture_desc.Width = width_;
+	depth_texture_desc.Height = height_;
+	depth_texture_desc.MipLevels = 0u;
+	depth_texture_desc.ArraySize = 1u;
+	depth_texture_desc.Format = DXGI_FORMAT_D32_FLOAT;
+	depth_texture_desc.SampleDesc.Count = 1u;
+	depth_texture_desc.SampleDesc.Quality = 0u;
+	depth_texture_desc.Usage = D3D11_USAGE_DEFAULT;
+	depth_texture_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+
+	call_result_ = core_ptr->get_device_ptr()->CreateTexture2D(&depth_texture_desc, nullptr, depth_texture_ptr_.GetAddressOf());
+
+	if (FAILED(call_result_))
+		throw LECoreException("<D3D11 ERROR> <Depth texture creation failed> ", "LEShader.cpp", __LINE__, call_result_);
+
+	D3D11_DEPTH_STENCIL_VIEW_DESC view_desc = { };
+
+	view_desc.Format = DXGI_FORMAT_D32_FLOAT;
+	view_desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+	view_desc.Texture2D.MipSlice = 0u;
+
+	// Creating depth stencil view using previously created texture
+
+	call_result_ = core_ptr->get_device_ptr()->CreateDepthStencilView(depth_texture_ptr_.Get(), &view_desc, dsv_ptr_.GetAddressOf());
+
+	if (FAILED(call_result_))
+		throw LECoreException("<D3D11 ERROR> <Stencil view creation failed> ", "LEShader.cpp", __LINE__, call_result_);
+
+
 	static const D3D11_SHADER_RESOURCE_VIEW_DESC srvd = { 
 		descriptor_.Format,
 		D3D11_SRV_DIMENSION_TEXTURE2D,
 		{0,-1}
 	};
 
+
 	call_result_ = core_ptr->get_device_ptr()->CreateShaderResourceView(ptr_.Get(), &srvd, &srv_ptr_);
 	if (FAILED(call_result_))
-		throw LECoreException("<D3D11 ERROR> <Texture2D resource view creation failed>", "LETexture.cpp", __LINE__ - 2, call_result_);
+		throw LECoreException("<D3D11 ERROR> <Texture2D resource view creation failed>", "LEShader.cpp", __LINE__ - 2, call_result_);
 
 	static D3D11_UNORDERED_ACCESS_VIEW_DESC uav_desc;
 
@@ -499,7 +531,7 @@ LightEngine::Texture2D::Texture2D(const std::shared_ptr<Core> &core_ptr, const s
 	
 	call_result_ = core_ptr_->get_device_ptr()->CreateUnorderedAccessView(ptr_.Get(), &uav_desc, uav_ptr_.GetAddressOf());
 	if (FAILED(call_result_))
-		throw LECoreException("<D3D11 ERROR> <Texture2D unordered access view creation failed>", "LETexture.cpp", __LINE__ - 2, call_result_);
+		throw LECoreException("<D3D11 ERROR> <Texture2D unordered access view creation failed>", "LEShader.cpp", __LINE__ - 2, call_result_);
 
 	call_result_ = core_ptr_->get_device_ptr()->CreateRenderTargetView(ptr_.Get(), nullptr, rtv_ptr_.GetAddressOf());
 	if (FAILED(call_result_))

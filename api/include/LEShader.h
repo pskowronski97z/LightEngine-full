@@ -138,6 +138,7 @@ namespace LightEngine {
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv_ptr_;
 		Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> uav_ptr_;
 		Microsoft::WRL::ComPtr<ID3D11RenderTargetView> rtv_ptr_;
+		Microsoft::WRL::ComPtr<ID3D11DepthStencilView> dsv_ptr_;
 		AbstractTexture();
 	public:
 		void generate_mip_maps() const;
@@ -147,6 +148,7 @@ namespace LightEngine {
 	protected:
 		D3D11_TEXTURE2D_DESC descriptor_;
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> ptr_;
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> depth_texture_ptr_;	
 		uint16_t width_;
 		uint16_t height_;
 	public:
