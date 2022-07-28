@@ -384,6 +384,12 @@ void LightEngine::AbstractTexture::generate_mip_maps() const {
 	core_ptr_->get_context_ptr()->GenerateMips(srv_ptr_.Get());
 }
 
+void LightEngine::AbstractTexture::clear() const {
+	const float clear_color[4]{ 0.0, 0.0, 0.0, 0.0 };
+	core_ptr_->get_context_ptr()->ClearRenderTargetView(rtv_ptr_.Get(), clear_color);
+	core_ptr_->get_context_ptr()->ClearDepthStencilView(dsv_ptr_.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0u);
+}
+
 
 LightEngine::Texture2D::Texture2D(const std::shared_ptr<Core> &core_ptr, const std::string& texture_path) {
 

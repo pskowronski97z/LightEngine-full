@@ -142,6 +142,7 @@ namespace LightEngine {
 		AbstractTexture();
 	public:
 		void generate_mip_maps() const;
+		void clear() const;
 	};
 
 	class __declspec(dllexport) Texture2D : public AbstractTexture {
@@ -154,7 +155,7 @@ namespace LightEngine {
 	public:
 		Texture2D(const std::shared_ptr<Core> &core_ptr, const std::string &texture_path);
 		Texture2D(const std::shared_ptr<Core> &core_ptr, const std::string &name, const uint16_t width, const uint16_t height, const float *data);
-		Texture2D(const std::shared_ptr<Core>& core_ptr, const std::string& name, const uint16_t width, const uint16_t height, const uint32_t *data);
+		Texture2D(const std::shared_ptr<Core> &core_ptr, const std::string& name, const uint16_t width, const uint16_t height, const uint32_t *data);
 		// This method packs data from vector of Vertex3 to 2d texture.
 		// One texture can contain up to 16 384 vertices.
 		// Vertex component storing layout in texture is as follows:

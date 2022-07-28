@@ -298,6 +298,20 @@ void LightEngine::Core::render_to_textures() {
 	context_ptr_->OMSetRenderTargets(D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT, render_targets, texture_dsv_ptr_.Get());
 }
 
+bool LightEngine::Core::render_to_textures(const std::vector<const AbstractTexture*> &textures_ptrs, const int count) const {
+	if (count > D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT)
+		return false;
+	
+	std::vector<ID3D11RenderTargetView*> rtv_ptrs(count);
+
+	for (int i = 0; i < count; i++) 
+		rtv_ptrs[i] = textures_ptrs[i]->rtv_ptr_.Get();
+	
+	context_ptr_->OMSetRenderTargets(count, rtv_ptrs.data(), textures_ptrs[0]->dsv_ptr_.Get());
+
+	return true;
+}
+
 void LightEngine::Core::clear_frame_buffer(float r, float g, float b, float a) const {
 	static float color[] = { r, g, b, a };
 	context_ptr_->ClearRenderTargetView(frame_buffer_rtv_ptr_.Get(), color);

@@ -1,6 +1,6 @@
-#define SAMPLING_UV_RADIUS 0.1
-#define SAMPLE_COUNT 25 
-#define ATT_QUADRATIC 0.4
+#define SAMPLING_UV_RADIUS 0.2
+#define SAMPLE_COUNT 400
+#define ATT_QUADRATIC 1.0
 #define ATT_LINEAR 0.0
 #define ATT_CONSTANT 1.0
 
@@ -63,7 +63,6 @@ float4 main(Pixel inputPixel) : SV_TARGET {
     l_pov_position = mul(l_pov_position, l_pov_projection_matrix_); 
     l_pov_position /= l_pov_position.w;
     
-  
     float2 uv;
     uv.x = l_pov_position.x * 0.5 + 0.5;
     uv.y = -l_pov_position.y * 0.5 + 0.5;
