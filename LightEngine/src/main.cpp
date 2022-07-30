@@ -18,13 +18,17 @@
 #include <FilePaths.h>
 #include <GI_Tools.h>
 #define USE_RSM
+#define USE_RSM_VS
 
 int main(int argc, const char** argv) {
 
-	AppWindow::Window window("LightEngine v1.0", 1000, 640);
+	const int screen_w = 1000;
+	const int screen_h = 800;
+
+	AppWindow::Window window("LightEngine v1.0", screen_w + 16, screen_h + 39);
 	window.set_style(AppWindow::Style::MAXIMIZE);
 	//window.set_style(AppWindow::Style::MINIMIZE);
-	window.set_style(AppWindow::Style::SIZEABLE);
+	//window.set_style(AppWindow::Style::SIZEABLE);
 	window.set_icon("LE.ico");
 
 	float color[4]{ 0.15,0.15,0.15 };
@@ -46,7 +50,6 @@ int main(int argc, const char** argv) {
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
-
 		ImGui::StyleColorsDark();
 		ImGui_ImplWin32_Init(window.get_handle());
 		ImGui_ImplDX11_Init(core->get_device_ptr().Get(), core->get_context_ptr().Get());
@@ -54,11 +57,6 @@ int main(int argc, const char** argv) {
 		ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.5f);
 		std::wstring shader_directory(COMPILED_SHADERS_DIR);
 
-		LightEngine::VertexShader vs(core, shader_directory + L"BasicVS.cso");
-		LightEngine::PixelShader frame_ps(core, shader_directory + L"FinalFramePS.cso");
-		LightEngine::PixelShader low_res_ps(core, shader_directory + L"LowResExtPS.cso");
-		LightEngine::PixelShader gbuffer_ps(core, shader_directory + L"GBufferPS.cso");
-		
 		LightEngine::FPSCamera fps_camera(core);
 		fps_camera.update();
 
@@ -67,21 +65,13 @@ int main(int argc, const char** argv) {
 		LightEngine::LightSource point_light(core, 1.0);
 		LightEngine::LightSource direct_light(core, 0.0);
 
-		LightEngine::Materials::BasicMaterial default_material(core, "Default00");
-		LightEngine::Materials::PBRMaterial pbr_material(core, "PBR_Metallic_Roughness");
+		//LightEngine::Materials::BasicMaterial default_material(core, "Default00");
+		//LightEngine::Materials::PBRMaterial pbr_material(core, "PBR_Metallic_Roughness");
 		LightEngine::Sampler sampler_nearest(core, LightEngine::Sampler::Filtering::NEAREST);
 		LightEngine::Sampler sampler_bilinear(core, LightEngine::Sampler::Filtering::BILINEAR);
 		LightEngine::Sampler sampler_trilinear(core, LightEngine::Sampler::Filtering::TRILINEAR);
 		LightEngine::Sampler sampler_anisotropic(core, LightEngine::Sampler::Filtering::ANISOTROPIC);
-		
-		
-		//point_light.bind_ps_buffer(1);
-		//point_light.bind_vs_buffer(1);
-		//point_light.update();
-
-		
-		//direct_light.bind_vs_buffer(2);
-
+				
 		sampler_anisotropic.bind(0);
 
 		direct_light_pov.set_orthographic_projection();
@@ -90,18 +80,13 @@ int main(int argc, const char** argv) {
 		direct_light_pov.update_view_matrix();
 		direct_light_pov.update();
 
-		//direct_light_pov.bind(0);
-		//direct_light_pov.bind(1);
-
 		LightEngine::ShaderResourceManager shader_resource_manager(core);
-
+		
 		#ifdef USE_RSM
 
 		const int gbuffer_w = 512;
 		const int gbuffer_h = 512;
-		const int low_res_map_w = 492;
-		const int low_res_map_h = 301;
-
+		
 		static float zeros[4 * gbuffer_w * gbuffer_h];
 		ZeroMemory(zeros, 4 * gbuffer_w * gbuffer_h);
 
@@ -109,31 +94,52 @@ int main(int argc, const char** argv) {
 		LightEngine::Texture2D gbuffer_normal(core, "GBuffer normal", gbuffer_w, gbuffer_h, zeros);
 		LightEngine::Texture2D gbuffer_depth(core, "GBuffer depth", gbuffer_w, gbuffer_h, zeros);
 		LightEngine::Texture2D gbuffer_flux(core, "GBuffer flux", gbuffer_w, gbuffer_h, zeros);
-		LightEngine::Texture2D low_res_map(core, "Low resolution GI map", low_res_map_w, low_res_map_h, zeros);
-
+		
 		std::vector<const LightEngine::AbstractTexture*> gbuffer(4u);
-		std::vector<const LightEngine::AbstractTexture*> gi_map(1u);
-
+		
 		gbuffer[0] = &gbuffer_world_position;
 		gbuffer[1] = &gbuffer_normal;
 		gbuffer[2] = &gbuffer_depth;
 		gbuffer[3] = &gbuffer_flux;
-		gi_map[0] = &low_res_map;
-
+		
 		direct_light_pov.set_aspect_ratio((float)gbuffer_w / (float)gbuffer_h);
 		direct_light_pov.update_projection_matrix();
 		direct_light_pov.update();
 
-		//core->add_texture_to_render(gbuffer_world_position, 0u);
-		//core->add_texture_to_render(gbuffer_normal, 1u);
-		//core->add_texture_to_render(gbuffer_depth, 2u);
-		//core->add_texture_to_render(gbuffer_flux, 3u);
-
-		// Generating the sampling pattern
 		std::vector<float> rsm_sampling_pattern(GI::RSM::generate_sampling_pattern(10000u));
 		LightEngine::Texture2D rsm_sampling_pattern_tx(core, "RSM sampling pattern", 10000u, 1u, rsm_sampling_pattern.data());
 		shader_resource_manager.bind_texture_buffer(rsm_sampling_pattern_tx, LightEngine::ShaderType::PixelShader, 3u);
+		shader_resource_manager.bind_texture_buffer(rsm_sampling_pattern_tx, LightEngine::ShaderType::VertexShader, 3u);
 		
+		LightEngine::VertexShader vs(core, shader_directory + L"RSM\\BasicVS.cso");		
+		LightEngine::PixelShader gbuffer_ps(core, shader_directory + L"RSM\\GBufferPS.cso");
+
+		#endif
+
+		#ifdef USE_RSM_BASE
+	
+		LightEngine::PixelShader frame_ps(core, shader_directory + L"RSM\\FinalFramePS.cso");		
+		LightEngine::PixelShader low_res_ps(core, shader_directory + L"RSM\\LowResExtPS.cso");
+		
+		const int low_res_map_w = 250;
+		const int low_res_map_h = 200;
+
+		static float zeros_lr[4 * low_res_map_w * low_res_map_h];
+		ZeroMemory(zeros_lr, 4 * low_res_map_w * low_res_map_h);
+
+		LightEngine::Texture2D rsm_gi_map(core, "Low resolution GI map", low_res_map_w, low_res_map_h, zeros_lr);
+		
+		std::vector<const LightEngine::AbstractTexture*> gi_map(1u);
+		
+		gi_map[0] = &rsm_gi_map;
+
+		#endif
+
+		#ifdef USE_RSM_VS
+
+		LightEngine::VertexShader rsm_pv_vs(core, shader_directory + L"RSM_Per_Vertex\\RSM_PV_VS.cso");
+		LightEngine::PixelShader rsm_pv_ps(core, shader_directory + L"RSM_Per_Vertex\\RSM_PV_PS.cso");
+
 		#endif
 
 		while (WM_QUIT != msg.message) {
@@ -422,10 +428,8 @@ int main(int argc, const char** argv) {
 				}
 
 				core->clear_frame_buffer(color);
-				
-				
-
-				#ifdef USE_RSM
+							
+				#ifdef USE_RSM_BASE
 				{
 					for (auto& tx : gbuffer)
 						tx->clear();
@@ -433,7 +437,7 @@ int main(int argc, const char** argv) {
 					for (auto& tx : gi_map)
 						tx->clear();
 
-					low_res_map.clear();
+					rsm_gi_map.clear();
 
 					// Baking the G-Buffer
 
@@ -497,7 +501,7 @@ int main(int argc, const char** argv) {
 					// direct_light_pov.bind_ps_buffer(0);
 
 					gbuffer_depth.generate_mip_maps();
-					shader_resource_manager.bind_texture_buffer(low_res_map, LightEngine::ShaderType::PixelShader, 0u);
+					shader_resource_manager.bind_texture_buffer(rsm_gi_map, LightEngine::ShaderType::PixelShader, 0u);
 					shader_resource_manager.bind_texture_buffer(gbuffer_depth, LightEngine::ShaderType::PixelShader, 1u);
 								
 					for (int i = 0; i < scene.size(); i++) {
@@ -510,6 +514,75 @@ int main(int argc, const char** argv) {
 					shader_resource_manager.unbind_texture_buffer(LightEngine::ShaderType::PixelShader, 1u);
 								
 				}
+				#endif 
+
+				#ifdef USE_RSM_VS
+
+				for (auto& tx : gbuffer)
+					tx->clear();
+				
+				// Baking the G-Buffer
+
+				vs.bind();
+				direct_light_pov.bind_vs_buffer(0u);
+
+				gbuffer_ps.bind();
+				direct_light_pov.bind_ps_buffer(0u);
+				direct_light.bind_ps_buffer(1u);
+
+				core->render_to_textures(gbuffer, 4u);
+
+				core->viewport_setup(0, 0, gbuffer_w, gbuffer_h);
+
+				for (int i = 0; i < scene.size(); i++) {
+					scene[i].bind_vertex_buffer();
+					scene[i].bind_topology();
+					scene[i].draw(0);
+				}
+			
+				gbuffer_depth.generate_mip_maps();
+
+				// Rendering the frame
+
+				core->render_to_frame_buffer();
+				
+				rsm_pv_vs.bind();
+				
+				fps_camera.bind_vs_buffer(0u);
+				direct_light_pov.bind_vs_buffer(1u);
+				direct_light.bind_vs_buffer(2u);
+
+				shader_resource_manager.bind_texture_buffer(gbuffer_world_position, LightEngine::ShaderType::VertexShader, 0u);
+				shader_resource_manager.bind_texture_buffer(gbuffer_normal, LightEngine::ShaderType::VertexShader, 1u);
+				shader_resource_manager.bind_texture_buffer(gbuffer_flux, LightEngine::ShaderType::VertexShader, 2u);
+
+				rsm_pv_ps.bind();
+
+				direct_light_pov.bind_ps_buffer(1u);
+				direct_light.bind_ps_buffer(2u);
+
+				shader_resource_manager.bind_texture_buffer(gbuffer_depth, LightEngine::ShaderType::PixelShader, 0u);
+
+				if (camera) {
+					direct_light_pov.bind_vs_buffer(0);
+					core->viewport_setup(0, 0, gbuffer_w, gbuffer_h);
+				}
+				else {
+					fps_camera.bind_vs_buffer(0);
+					core->viewport_setup(0, 0, window.get_width(), window.get_height());
+				}
+
+				for (int i = 0; i < scene.size(); i++) {
+						scene[i].bind_vertex_buffer();
+						scene[i].bind_topology();
+						scene[i].draw(0);
+				}
+
+				shader_resource_manager.unbind_texture_buffer(LightEngine::ShaderType::VertexShader, 0u);
+				shader_resource_manager.unbind_texture_buffer(LightEngine::ShaderType::VertexShader, 1u);
+				shader_resource_manager.unbind_texture_buffer(LightEngine::ShaderType::VertexShader, 2u);
+				shader_resource_manager.unbind_texture_buffer(LightEngine::ShaderType::PixelShader, 0u);
+
 				#endif 
 
 				ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
