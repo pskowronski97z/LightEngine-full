@@ -1,2 +1,2 @@
-#define TRIANGLES_COUNT 156 // 1024 max
-#define SAMPLES_COUNT 4 // 1024 max
+#define TRIANGLES_COUNT 196 // 1024 max
+#define SAMPLES_COUNT 32 // 1024 max

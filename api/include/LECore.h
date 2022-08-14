@@ -54,7 +54,7 @@ namespace LightEngine {
 		/// <param name="textures_ptrs">The vector of pointers to constant target textures</param>
 		/// <param name="count">Count of textures going to be set as render targets</param>
 		/// <returns>True if given texture count is supported. False otherwise. </returns>
-		bool render_to_textures(const std::vector<const AbstractTexture*> &textures_ptrs, const int count) const;
+		bool render_to_textures(const std::vector<const AbstractTexture*> &textures_ptrs) const;
 		// All resources bound to frame buffer render target must be released before setting new 
 		//void render_to_texture(RenderableTexture &renderable_texture);
 		Microsoft::WRL::ComPtr<ID3D11Device> get_device_ptr();

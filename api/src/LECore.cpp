@@ -177,7 +177,7 @@ void LightEngine::Core::setup_frame_buffer(const uint16_t width, const uint16_t 
 //}
 
 void LightEngine::Core::present_frame() {
-	call_result_ = swap_chain_ptr_->Present(1u, 0u);
+	call_result_ = swap_chain_ptr_->Present(0u, 0u);
 
 	if (FAILED(call_result_))
 		throw LECoreException("<D3D11 ERROR> <Frame rendering failed> ", "LECore.cpp", __LINE__, call_result_);
@@ -298,7 +298,9 @@ void LightEngine::Core::render_to_textures() {
 	context_ptr_->OMSetRenderTargets(D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT, render_targets, texture_dsv_ptr_.Get());
 }
 
-bool LightEngine::Core::render_to_textures(const std::vector<const AbstractTexture*> &textures_ptrs, const int count) const {
+bool LightEngine::Core::render_to_textures(const std::vector<const AbstractTexture*> &textures_ptrs) const {
+	const int count = textures_ptrs.size();
+
 	if (count > D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT)
 		return false;
 	

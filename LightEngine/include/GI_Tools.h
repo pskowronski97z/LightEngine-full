@@ -5,6 +5,7 @@
 
 namespace GI {
 	namespace RSM {
-		std::vector<float> generate_sampling_pattern(const uint32_t samples_count);
+		std::vector<float> generate_sampling_pattern(const uint32_t samples_count, const uint8_t option);
+		std::vector<float> generate_random_floats(const uint32_t size);
 	}
 }

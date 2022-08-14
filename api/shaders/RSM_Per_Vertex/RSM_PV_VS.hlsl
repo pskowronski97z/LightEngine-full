@@ -1,8 +1,8 @@
 #include "RSM_PV_Header.hlsli"
 
 #define SAMPLING_RADIUS 0.2
-#define SAMPLE_COUNT 50
-#define INDIRECT_INTENSITY 10.0
+#define SAMPLE_COUNT 400
+#define INDIRECT_INTENSITY 0.5
 #define ATT_QUADRATIC 1.0
 #define ATT_LINEAR 0.0
 #define ATT_CONSTANT 1.0

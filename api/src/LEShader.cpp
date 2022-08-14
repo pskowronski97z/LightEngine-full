@@ -17,6 +17,10 @@ void LightEngine::ConstantBuffer::bind_vs_buffer(short slot) const {
 	core_ptr_->get_context_ptr()->VSSetConstantBuffers(slot, 1, constant_buffer_ptr_.GetAddressOf());
 }
 
+void LightEngine::ConstantBuffer::bind_cs_buffer(short slot) const {
+	core_ptr_->get_context_ptr()->CSSetConstantBuffers(slot, 1, constant_buffer_ptr_.GetAddressOf());
+}
+
 
 template<class T> LightEngine::Shader<T>::Shader(std::shared_ptr<Core> core_ptr) : CoreUser(core_ptr), shader_ptr_(nullptr) {}
 

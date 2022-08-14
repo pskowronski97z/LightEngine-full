@@ -1,4 +1,5 @@
 #include "RSMInclude.hlsli"
+//#define SCREEN_SPACE_INTERPOLATION
 
 Texture2D GI_MAP : register(t0);
 Texture2D DEPTH_MAP : register(t1);
@@ -26,6 +27,10 @@ float4 main(Pixel inputPixel) : SV_TARGET {
     if (l_pov_position.z > (sampled_depth + 0.001))
         direct_diffuse *= 0.0;
 
+    float4 indirect_diffuse;
+    
+    #ifdef SCREEN_SPACE_INTERPOLATION
+
     uint gi_map_width;
     uint gi_map_height;
     
@@ -37,7 +42,7 @@ float4 main(Pixel inputPixel) : SV_TARGET {
     x = inputPixel.position.x / x;
     y = inputPixel.position.y / y;
     
-    float4 indirect_diffuse = float4(0.0, 0.0, 0.0, 0.0);
+    indirect_diffuse = float4(0.0, 0.0, 0.0, 0.0);
     uint x1 = floor(x);
     uint x2 = ceil(x);
     uint y1 = floor(y);
@@ -52,6 +57,14 @@ float4 main(Pixel inputPixel) : SV_TARGET {
     float4 xy2 = lerp(q12, q22, x_value);
     
     indirect_diffuse = lerp(xy1, xy2, y_value);   
-  
+    
+    #endif
+    
+    #ifndef SCREEN_SPACE_INTERPOLATION
+    
+    indirect_diffuse = GI_MAP.Load(uint3(inputPixel.position.xyz));
+    
+    #endif   
+    
     return direct_diffuse + indirect_diffuse;
 }

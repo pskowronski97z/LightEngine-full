@@ -17,13 +17,14 @@
 #include <LEBackend.h>
 #include <FilePaths.h>
 #include <GI_Tools.h>
-#define USE_RSM
-#define USE_RSM_VS
+//#define USE_RSM
+//#define USE_RSM_VS
+#define USE_MC_PATH_TRACING
 
 int main(int argc, const char** argv) {
 
-	const int screen_w = 1000;
-	const int screen_h = 800;
+	const int screen_w = 1024;
+	const int screen_h = 600;
 
 	AppWindow::Window window("LightEngine v1.0", screen_w + 16, screen_h + 39);
 	window.set_style(AppWindow::Style::MAXIMIZE);
@@ -58,6 +59,8 @@ int main(int argc, const char** argv) {
 		std::wstring shader_directory(COMPILED_SHADERS_DIR);
 
 		LightEngine::FPSCamera fps_camera(core);
+		fps_camera.modify_vertical_angle(270.0f);
+		fps_camera.move_relative_z(32.0f);
 		fps_camera.update();
 
 		LightEngine::ArcballCamera direct_light_pov(core, 50.0);
@@ -82,10 +85,69 @@ int main(int argc, const char** argv) {
 
 		LightEngine::ShaderResourceManager shader_resource_manager(core);
 		
+		#ifdef USE_MC_PATH_TRACING
+
+		const int samples_count = 32;
+
+		LightEngine::VertexShader vs(core, shader_directory + L"CameraVS.cso");
+		LightEngine::PixelShader depth_ps(core, shader_directory + L"MC\\DepthPS.cso");
+		LightEngine::PixelShader final_frame_ps(core, shader_directory + L"MC\\FinalFramePS.cso");
+		LightEngine::PixelShader gbuffer_ps(core, shader_directory + L"MC\\GeneratePixelDataPS.cso");
+		LightEngine::ComputeShader sampling_cs(core, shader_directory + L"MC\\GeometrySamplingCS.cso");
+		LightEngine::ComputeShader contributions_cs(core, shader_directory + L"MC\\LambertDiffuseCS.cso");
+
+		const int depth_map_w = 512, depth_map_h = 512;
+		
+		static float zeros[4 * depth_map_w * depth_map_h];
+		ZeroMemory(zeros, 4 * depth_map_w * depth_map_h);
+
+		LightEngine::Texture2D depth_map(core, "Depth map", depth_map_w, depth_map_h, zeros);
+		std::vector<const LightEngine::AbstractTexture*> depth_buffer(1u);
+		depth_buffer[0] = &depth_map;
+
+
+		static float zeros_1[4 * screen_w * screen_h];
+		ZeroMemory(zeros_1, 4 * screen_w * screen_h);
+
+		LightEngine::Texture2D pixel_world_position(core, "Pixel world position", screen_w, screen_h, zeros_1);
+		LightEngine::Texture2D pixel_normal(core, "Pixel normal", screen_w, screen_h, zeros_1);
+		LightEngine::Texture2D pixel_tangent(core, "Pixel tangent", screen_w, screen_h, zeros_1);
+		LightEngine::Texture2D pixel_bitangent(core, "Pixel bitangent", screen_w, screen_h, zeros_1);
+		LightEngine::Texture2D pixel_uvw(core, "Pixel texture coords", screen_w, screen_h, zeros_1);
+		LightEngine::Texture2D pixel_color(core, "Pixel color", screen_w, screen_h, zeros_1);
+		std::vector<const LightEngine::AbstractTexture*> gbuffer(6u);
+		gbuffer[0] = &pixel_world_position;
+		gbuffer[1] = &pixel_normal;
+		gbuffer[2] = &pixel_tangent;
+		gbuffer[3] = &pixel_bitangent;
+		gbuffer[4] = &pixel_uvw;
+		gbuffer[5] = &pixel_color;
+
+		static float zeros_2[4 * screen_w * samples_count * screen_h];
+		ZeroMemory(zeros_2, 4 * screen_w * samples_count * screen_h);
+
+		LightEngine::Texture3D general_3D_buffer(core, "3D Buffer", screen_w, screen_h, samples_count, zeros_2);
+
+
+		std::vector<float> random_floats(GI::RSM::generate_random_floats(screen_w * screen_h * 4u));
+		LightEngine::Texture2D noise_map(core, "Noise map", screen_w, screen_h, random_floats.data());
+		shader_resource_manager.bind_texture_buffer(noise_map, LightEngine::ShaderType::ComputeShader, 7u);
+
+
+		direct_light_pov.set_aspect_ratio(float(depth_map_w)/float(depth_map_h));
+		direct_light_pov.update_projection_matrix();
+		direct_light_pov.update();	
+
+		direct_light_pov.bind_cs_buffer(0u);
+		direct_light.bind_cs_buffer(1u);
+
+		#endif
+
 		#ifdef USE_RSM
 
 		const int gbuffer_w = 512;
 		const int gbuffer_h = 512;
+		const int samples = 400;
 		
 		static float zeros[4 * gbuffer_w * gbuffer_h];
 		ZeroMemory(zeros, 4 * gbuffer_w * gbuffer_h);
@@ -106,11 +168,16 @@ int main(int argc, const char** argv) {
 		direct_light_pov.update_projection_matrix();
 		direct_light_pov.update();
 
-		std::vector<float> rsm_sampling_pattern(GI::RSM::generate_sampling_pattern(10000u));
-		LightEngine::Texture2D rsm_sampling_pattern_tx(core, "RSM sampling pattern", 10000u, 1u, rsm_sampling_pattern.data());
+		std::vector<float> rsm_sampling_pattern(GI::RSM::generate_sampling_pattern(samples, 4u));
+		std::vector<float> random_floats(GI::RSM::generate_random_floats(screen_w * screen_h * 4u));
+
+		LightEngine::Texture2D rsm_sampling_pattern_tx(core, "RSM sampling pattern", samples, 1u, rsm_sampling_pattern.data());
+		LightEngine::Texture2D noise_map(core, "Noise map", screen_w, screen_h, random_floats.data());
+
 		shader_resource_manager.bind_texture_buffer(rsm_sampling_pattern_tx, LightEngine::ShaderType::PixelShader, 3u);
 		shader_resource_manager.bind_texture_buffer(rsm_sampling_pattern_tx, LightEngine::ShaderType::VertexShader, 3u);
-		
+		shader_resource_manager.bind_texture_buffer(noise_map, LightEngine::ShaderType::PixelShader, 4u);
+
 		LightEngine::VertexShader vs(core, shader_directory + L"RSM\\BasicVS.cso");		
 		LightEngine::PixelShader gbuffer_ps(core, shader_directory + L"RSM\\GBufferPS.cso");
 
@@ -121,8 +188,8 @@ int main(int argc, const char** argv) {
 		LightEngine::PixelShader frame_ps(core, shader_directory + L"RSM\\FinalFramePS.cso");		
 		LightEngine::PixelShader low_res_ps(core, shader_directory + L"RSM\\LowResExtPS.cso");
 		
-		const int low_res_map_w = 250;
-		const int low_res_map_h = 200;
+		const int low_res_map_w = 1280;
+		const int low_res_map_h = 720;
 
 		static float zeros_lr[4 * low_res_map_w * low_res_map_h];
 		ZeroMemory(zeros_lr, 4 * low_res_map_w * low_res_map_h);
@@ -174,16 +241,80 @@ int main(int argc, const char** argv) {
 							if (ImGui::MenuItem("Import")) {
 								std::string path = AppWindow::open_file_dialog(model_file_filter, model_file_filter_size);
 								if (path != "") {
-									const float **colors = new const float*[4]; 
-									colors[0] = new float[3]{ 1.0, 1.0, 1.0 };
-									colors[1] = new float[3]{ 1.0, 1.0, 0.4 };
-									colors[2] = new float[3]{ 0.2, 0.6, 1.0 };
-									colors[3] = new float[3]{ 1.0, 0.5, 0.5 };
+									const float **colors = new const float*[7]; 
+									//colors[0] = new float[3]{ 1.0, 1.0, 1.0 };
+									//colors[1] = new float[3]{ 1.0, 0.4, 0.4 };
+									//colors[2] = new float[3]{ 0.4, 1.0, 0.4 };
+									//colors[3] = new float[3]{ 1.0, 1.0, 1.0 };
+									//colors[4] = new float[3]{ 1.0, 1.0, 1.0 };
+									//colors[5] = new float[3]{ 0.4, 0.4, 1.0 };
 
-									std::vector<LightEngine::Geometry<LightEngine::Vertex3>> object_set = LightEngine::Geometry<LightEngine::Vertex3>::load_from_obj(core, path, colors, 4);
+									colors[0] = new float[3]{ 1.0, 1.0, 1.0 };
+									colors[1] = new float[3]{ 1.0, 0.4, 0.4 };
+									colors[2] = new float[3]{ 0.4, 1.0, 0.4 };
+									colors[3] = new float[3]{ 1.0, 1.0, 1.0 };
+									colors[4] = new float[3]{ 1.0, 0.4, 0.4 };
+									colors[5] = new float[3]{ 0.4, 1.0, 0.4 };
+									colors[6] = new float[3]{ 1.0, 1.0, 1.0 };
+
+									std::vector<LightEngine::Geometry<LightEngine::Vertex3>> object_set = LightEngine::Geometry<LightEngine::Vertex3>::load_from_obj(core, path, colors, 7);
 									for (auto& object : object_set) {
 										scene.push_back(object);
 									}
+
+									#ifdef USE_MC_PATH_TRACING
+
+									// pack geo to textures and bind to sampling cs
+
+
+									int scene_vertex_count = 0;
+
+									for (auto& obj : scene)
+										scene_vertex_count += obj.get_vertices_vector().size();
+
+									std::vector<LightEngine::Vertex3> merged_vertices(scene_vertex_count);
+
+									auto destination_itr = merged_vertices.begin();
+
+									for (auto& obj : scene) {
+										std::vector<LightEngine::Vertex3> obj_vertices(obj.get_vertices_vector());
+
+										auto source_begin_itr = obj_vertices.begin();
+										auto source_end_itr = obj_vertices.end();
+
+										std::copy(source_begin_itr, source_end_itr, destination_itr);
+
+										destination_itr += obj_vertices.size();
+									}
+
+									int triangle_count = merged_vertices.size() / 3;
+
+									static std::vector<LightEngine::Vertex3> tris_v0s(0);
+									static std::vector<LightEngine::Vertex3> tris_v1s(0);
+									static std::vector<LightEngine::Vertex3> tris_v2s(0);
+
+									tris_v0s.reserve(triangle_count);
+									tris_v1s.reserve(triangle_count);
+									tris_v2s.reserve(triangle_count);
+
+
+									for (int i = 0; i < merged_vertices.size(); i += 3) {
+
+										tris_v0s.push_back(merged_vertices[i]);
+										tris_v1s.push_back(merged_vertices[i + 1]);
+										tris_v2s.push_back(merged_vertices[i + 2]);
+
+									}
+
+									LightEngine::Texture2D v0s_tex = LightEngine::Texture2D::store_geometry(core, tris_v0s);
+									LightEngine::Texture2D v1s_tex = LightEngine::Texture2D::store_geometry(core, tris_v1s);
+									LightEngine::Texture2D v2s_tex = LightEngine::Texture2D::store_geometry(core, tris_v2s);
+
+									shader_resource_manager.bind_texture_buffer(v0s_tex, LightEngine::ShaderType::ComputeShader, 0u);
+									shader_resource_manager.bind_texture_buffer(v1s_tex, LightEngine::ShaderType::ComputeShader, 1u);
+									shader_resource_manager.bind_texture_buffer(v2s_tex, LightEngine::ShaderType::ComputeShader, 2u);
+
+									#endif 
 								}
 							}
 							ImGui::EndMenu();
@@ -392,7 +523,18 @@ int main(int argc, const char** argv) {
 							fps_camera.move_y(-1.0);
 							fps_camera.update_view_matrix();
 							update_camera = true;
-						}
+						}						
+					}
+					if (AppWindow::IO::Keyboard::key_down(AppWindow::IO::Key::P)) {
+						show_gui = false;
+					}
+
+					if (AppWindow::IO::Keyboard::key_down(AppWindow::IO::Key::O)) {
+						show_gui = true;
+					}
+
+					if (AppWindow::IO::Keyboard::key_down(AppWindow::IO::Key::M)) {
+						path_tracing = !path_tracing;
 					}
 				}
 
@@ -428,7 +570,121 @@ int main(int argc, const char** argv) {
 				}
 
 				core->clear_frame_buffer(color);
-							
+					
+				#ifdef USE_MC_PATH_TRACING
+
+				vs.bind();			
+				depth_ps.bind();
+
+				core->viewport_setup(0, 0, depth_map_w, depth_map_h);
+				direct_light_pov.bind_vs_buffer(0u);
+				
+				
+
+				if (camera) {
+					
+					core->render_to_frame_buffer();
+					
+					for (int i = 0; i < scene.size(); i++) {
+						scene[i].bind_vertex_buffer();
+						scene[i].bind_topology();
+						scene[i].draw(0);
+					}			
+				}
+				else {
+
+					// Shadow map
+
+					depth_map.clear();
+
+					core->render_to_textures(depth_buffer);
+
+					for (int i = 0; i < scene.size(); i++) {
+						scene[i].bind_vertex_buffer();
+						scene[i].bind_topology();
+						scene[i].draw(0);
+					}
+
+					depth_map.generate_mip_maps();
+
+					core->render_to_frame_buffer();
+
+					// Gbuffer
+					
+					for (auto& buffer : gbuffer)
+						buffer->clear();
+
+					fps_camera.bind_vs_buffer(0u);
+					core->viewport_setup(0, 0, screen_w, screen_h);
+					gbuffer_ps.bind();
+
+					core->render_to_textures(gbuffer);
+
+					for (int i = 0; i < scene.size(); i++) {
+						scene[i].bind_vertex_buffer();
+						scene[i].bind_topology();
+						scene[i].draw(0);
+					}
+
+					// Path traced GI map
+
+					core->render_to_frame_buffer();
+
+					if (path_tracing) {
+
+						shader_resource_manager.bind_texture_buffer(pixel_world_position, LightEngine::ShaderType::ComputeShader, 3u);
+						shader_resource_manager.bind_texture_buffer(pixel_normal, LightEngine::ShaderType::ComputeShader, 4u);
+						shader_resource_manager.bind_texture_buffer(pixel_tangent, LightEngine::ShaderType::ComputeShader, 5u);
+						shader_resource_manager.bind_texture_buffer(pixel_bitangent, LightEngine::ShaderType::ComputeShader, 6u);
+						shader_resource_manager.bind_cs_unordered_access_buffer(general_3D_buffer, 0u);
+
+						sampling_cs.bind();
+						sampling_cs.run(screen_w, screen_h, samples_count);
+
+						contributions_cs.bind();
+
+						shader_resource_manager.bind_texture_buffer(pixel_color, LightEngine::ShaderType::ComputeShader, 8u);
+						shader_resource_manager.bind_texture_buffer(depth_map, LightEngine::ShaderType::ComputeShader, 9u);
+
+						contributions_cs.run(screen_w, screen_h, 1u);
+
+						shader_resource_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 3u);
+						shader_resource_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 4u);
+						shader_resource_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 5u);
+						shader_resource_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 6u);
+						shader_resource_manager.unbind_cs_unordered_access_buffer(0u);
+						shader_resource_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 8u);
+						shader_resource_manager.unbind_texture_buffer(LightEngine::ShaderType::ComputeShader, 9u);
+
+					}
+					
+					// Final frame			
+
+					fps_camera.bind_vs_buffer(0u);
+													
+					
+
+					final_frame_ps.bind();
+					direct_light_pov.bind_ps_buffer(0u);
+					direct_light.bind_ps_buffer(1u);
+
+					shader_resource_manager.bind_texture_buffer(general_3D_buffer, LightEngine::ShaderType::PixelShader, 0u);
+					shader_resource_manager.bind_texture_buffer(depth_map, LightEngine::ShaderType::PixelShader, 1u);
+
+					for (int i = 0; i < scene.size(); i++) {
+						scene[i].bind_vertex_buffer();
+						scene[i].bind_topology();
+						scene[i].draw(0);
+					}
+
+					shader_resource_manager.unbind_texture_buffer(LightEngine::ShaderType::PixelShader, 0u);
+					shader_resource_manager.unbind_texture_buffer(LightEngine::ShaderType::PixelShader, 1u);
+
+				}
+
+				
+				#endif 
+
 				#ifdef USE_RSM_BASE
 				{
 					for (auto& tx : gbuffer)
@@ -585,9 +841,12 @@ int main(int argc, const char** argv) {
 
 				#endif 
 
-				ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+				if(show_gui)
+					ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
 				core->present_frame();
+
+				
 			}
 		}
 	}

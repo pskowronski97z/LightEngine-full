@@ -70,7 +70,8 @@ bool is_diffuse_map_used = false;
 bool is_normal_map_used = false;
 bool flip_x = false;
 bool flip_y = false;
-
+bool show_gui = true;
+bool path_tracing = false;
 
 std::string load_dmap_btn_lbl = "Load diffuse map";
 std::string load_nmap_btn_lbl = "Load normal map";

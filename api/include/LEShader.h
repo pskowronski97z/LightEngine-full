@@ -57,6 +57,7 @@ namespace LightEngine {
 	public:
 		void bind_ps_buffer(short slot) const;
 		void bind_vs_buffer(short slot) const;
+		void bind_cs_buffer(short slot) const;
 	};
 
 	enum class ShaderType {

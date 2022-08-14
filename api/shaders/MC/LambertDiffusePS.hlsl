@@ -42,10 +42,10 @@ float4 main(PixelShaderInput input_pixel) : SV_TARGET {
     float3 indirect_lighting = float3(0.0, 0.0, 0.0);
     //float4 random_vector = random_floats[input_pixel.position_.xy];
     
-    for (int i = 0; i < 20; i++) 
+    for (int i = 0; i < SAMPLES_COUNT; i++) 
         indirect_lighting += global_illumination[uint3(input_pixel.position_.xy, i)].xyz;  
     
-    indirect_lighting /= 20;
+    indirect_lighting /= SAMPLES_COUNT;
     
     //uint random_uint = lerp(0.0, 4.0, random_vector.x);
     //indirect_lighting += global_illumination[uint3(input_pixel.position_.xy, random_uint)].xyz;
